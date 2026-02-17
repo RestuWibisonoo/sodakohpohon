@@ -1,6 +1,118 @@
 <?php
 // admin/index.php
-require_once '../controllers/adminController.php';
+session_start();
+
+// Simulasi data statistik
+ $today_donations = 1850000;
+ $today_donors = 28;
+ $total_trees_collected = 15234;
+ $total_trees_planted = 8750;
+ $total_donors = 3241;
+ $total_donations_amount = 187650000;
+ $pending_planting = 6484;
+
+// Simulasi data campaign untuk progress
+ $campaigns = [
+    [
+        'name' => 'Restorasi Mangrove Demak',
+        'collected' => 1450,
+        'target' => 5000,
+        'planted' => 890,
+        'deadline' => '2026-03-30'
+    ],
+    [
+        'name' => 'Reboisasi Lereng Merapi',
+        'collected' => 2300,
+        'target' => 4000,
+        'planted' => 1650,
+        'deadline' => '2026-03-15'
+    ],
+    [
+        'name' => 'Penghijauan Hutan Lombok',
+        'collected' => 780,
+        'target' => 3000,
+        'planted' => 450,
+        'deadline' => '2026-04-20'
+    ],
+    [
+        'name' => 'Mangrove Pesisir Jakarta',
+        'collected' => 1250,
+        'target' => 3500,
+        'planted' => 840,
+        'deadline' => '2026-03-25'
+    ]
+];
+
+// Simulasi donasi terbaru
+ $recent_donations = [
+    [
+        'donor' => 'Ahmad Fauzi',
+        'campaign' => 'Restorasi Mangrove Demak',
+        'trees' => 10,
+        'amount' => 100000,
+        'date' => '2026-02-28 14:23:45'
+    ],
+    [
+        'donor' => 'Sarah Putri',
+        'campaign' => 'Reboisasi Lereng Merapi',
+        'trees' => 5,
+        'amount' => 60000,
+        'date' => '2026-02-28 11:15:22'
+    ],
+    [
+        'donor' => 'Anonymous',
+        'campaign' => 'Mangrove Pesisir Jakarta',
+        'trees' => 3,
+        'amount' => 30000,
+        'date' => '2026-02-28 09:45:10'
+    ],
+    [
+        'donor' => 'Dewi Lestari',
+        'campaign' => 'Penghijauan Hutan Lombok',
+        'trees' => 7,
+        'amount' => 105000,
+        'date' => '2026-02-27 16:30:50'
+    ],
+    [
+        'donor' => 'Budi Santoso',
+        'campaign' => 'Restorasi Mangrove Demak',
+        'trees' => 2,
+        'amount' => 20000,
+        'date' => '2026-02-27 13:12:30'
+    ]
+];
+
+// Simulasi penanaman terbaru
+ $recent_plantings = [
+    [
+        'campaign' => 'Restorasi Mangrove Demak',
+        'location' => 'Demak, Jawa Tengah',
+        'trees' => 350,
+        'volunteers' => 45,
+        'date' => '2026-02-15'
+    ],
+    [
+        'campaign' => 'Reboisasi Lereng Merapi',
+        'location' => 'Magelang, Jawa Tengah',
+        'trees' => 500,
+        'volunteers' => 78,
+        'date' => '2026-02-10'
+    ],
+    [
+        'campaign' => 'Mangrove Pesisir Jakarta',
+        'location' => 'Jakarta Utara',
+        'trees' => 280,
+        'volunteers' => 52,
+        'date' => '2026-02-05'
+    ],
+    [
+        'campaign' => 'Penghijauan Hutan Lombok',
+        'location' => 'Lombok, NTB',
+        'trees' => 450,
+        'volunteers' => 63,
+        'date' => '2026-01-28'
+    ]
+];
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -186,7 +298,7 @@ require_once '../controllers/adminController.php';
                             </a>
                         </li>
                         <li>
-                            <a href="#" class="sidebar-link flex items-center px-4 py-3 rounded-xl text-gray-700 hover:bg-primary-50">
+                            <a href="../index.php" class="sidebar-link flex items-center px-4 py-3 rounded-xl text-gray-700 hover:bg-primary-50">
                                 <i class="fas fa-sign-out-alt w-6 text-gray-500"></i>
                                 <span class="ml-3 font-medium">Keluar</span>
                             </a>
@@ -268,7 +380,7 @@ require_once '../controllers/adminController.php';
                                 <i class="fas fa-seedling text-earth-600 text-xl"></i>
                             </div>
                             <span class="text-xs font-semibold text-orange-600 bg-orange-50 px-3 py-1 rounded-full">
-                                <?php echo $pending_planting; ?> pending
+                                <?php echo number_format($pending_planting); ?> pending
                             </span>
                         </div>
                         <p class="text-sm text-gray-500 mb-1">Pohon Tertanam</p>
@@ -321,7 +433,7 @@ require_once '../controllers/adminController.php';
                                 </span>
                                 <i class="fas fa-chevron-right text-gray-400"></i>
                             </a>
-                            <a href="planted.php?action=update" 
+                            <a href="planted.php?action=create" 
                                class="flex items-center justify-between w-full p-3 bg-earth-50 hover:bg-earth-100 rounded-xl transition">
                                 <span class="flex items-center">
                                     <i class="fas fa-seedling text-earth-600 mr-3"></i>

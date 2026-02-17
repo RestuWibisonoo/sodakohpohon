@@ -6,7 +6,7 @@
 define('DB_HOST', 'localhost');
 define('DB_USER', 'root');
 define('DB_PASS', '');
-define('DB_NAME', 'sodakohpohon');
+define('DB_NAME', 'sodakoh_pohon');
 
 // Base URL configuration
 define('BASE_URL', 'http://localhost/sodakohpohon');
@@ -182,5 +182,79 @@ if (!file_exists(UPLOAD_PATH)) {
  */
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
+}
+
+/**
+ * Fungsi helper untuk cek apakah user sudah login
+ */
+function isLoggedIn() {
+    return isset($_SESSION['user_logged_in']) && $_SESSION['user_logged_in'] === true;
+}
+
+/**
+ * Fungsi helper untuk cek apakah admin sudah login
+ */
+function isAdminLoggedIn() {
+    return isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in'] === true;
+}
+
+/**
+ * Fungsi helper untuk mendapatkan data user yang login
+ */
+function getCurrentUser() {
+    if (!isLoggedIn()) {
+        return null;
+    }
+    
+    return [
+        'id' => $_SESSION['user_id'] ?? null,
+        'name' => $_SESSION['user_name'] ?? '',
+        'email' => $_SESSION['user_email'] ?? ''
+    ];
+}
+
+/**
+ * Fungsi helper untuk mendapatkan data admin yang login
+ */
+function getCurrentAdmin() {
+    if (!isAdminLoggedIn()) {
+        return null;
+    }
+    
+    return [
+        'id' => $_SESSION['admin_id'] ?? null,
+        'name' => $_SESSION['admin_name'] ?? '',
+        'email' => $_SESSION['admin_email'] ?? ''
+    ];
+}
+
+/**
+ * Fungsi helper untuk redirect
+ */
+function redirect($url) {
+    header('Location: ' . $url);
+    exit;
+}
+
+/**
+ * Fungsi helper untuk set flash message
+ */
+function setFlashMessage($type, $message) {
+    $_SESSION['flash_message'] = [
+        'type' => $type,
+        'message' => $message
+    ];
+}
+
+/**
+ * Fungsi helper untuk mendapatkan flash message
+ */
+function getFlashMessage() {
+    if (isset($_SESSION['flash_message'])) {
+        $message = $_SESSION['flash_message'];
+        unset($_SESSION['flash_message']);
+        return $message;
+    }
+    return null;
 }
 ?>

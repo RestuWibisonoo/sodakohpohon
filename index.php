@@ -1,18 +1,94 @@
 <?php
 // index.php - Front Controller
-$page = isset($_GET['page']) ? $_GET['page'] : 'home';
+session_start();
 
-switch ($page) {
-    case 'campaign':
-        require_once 'controllers/campaignController.php';
-        break;
-    case 'donation':
-        require_once 'controllers/donationController.php';
-        break;
-    default:
-        require_once 'controllers/campaignController.php';
-        break;
-}
+// Simulasi data statistik
+ $total_trees = 15234;
+ $total_planted = 8750;
+ $total_donors = 3241;
+ $total_locations = 23;
+
+// Simulasi data campaign
+ $campaigns = [
+    [
+        'id' => 1,
+        'title' => 'Restorasi Mangrove Demak',
+        'location' => 'Demak, Jawa Tengah',
+        'tree_type' => 'Mangrove Rhizophora',
+        'price_per_tree' => 10000,
+        'target_trees' => 5000,
+        'current_trees' => 1450,
+        'image' => 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
+        'description' => 'Program penanaman mangrove untuk membangun sabuk hijau yang melindungi garis pantai dari abrasi.',
+        'donors' => 245,
+        'days_left' => 30
+    ],
+    [
+        'id' => 2,
+        'title' => 'Reboisasi Lereng Merapi',
+        'location' => 'Magelang, Jawa Tengah',
+        'tree_type' => 'Sengon & Mahoni',
+        'price_per_tree' => 12000,
+        'target_trees' => 4000,
+        'current_trees' => 2300,
+        'image' => 'https://images.unsplash.com/photo-1472214103451-9374bd1c798e?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
+        'description' => 'Penanaman sengon dan mahoni di lereng Merapi untuk mencegah erosi dan longsor.',
+        'donors' => 312,
+        'days_left' => 15
+    ],
+    [
+        'id' => 3,
+        'title' => 'Penghijauan Hutan Lombok',
+        'location' => 'Lombok, NTB',
+        'tree_type' => 'Mahoni',
+        'price_per_tree' => 15000,
+        'target_trees' => 3000,
+        'current_trees' => 780,
+        'image' => 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
+        'description' => 'Penanaman pohon di kawasan hutan yang terbakar untuk memulihkan ekosistem.',
+        'donors' => 156,
+        'days_left' => 45
+    ],
+    [
+        'id' => 4,
+        'title' => 'Hutan Pangan Kalimantan',
+        'location' => 'Kutai, Kaltim',
+        'tree_type' => 'Durian & Petai',
+        'price_per_tree' => 25000,
+        'target_trees' => 2000,
+        'current_trees' => 450,
+        'image' => 'https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
+        'description' => 'Program hutan pangan untuk memberdayakan masyarakat adat dan melestarikan hutan.',
+        'donors' => 89,
+        'days_left' => 60
+    ],
+    [
+        'id' => 5,
+        'title' => 'Konservasi Hutan Papua',
+        'location' => 'Jayapura, Papua',
+        'tree_type' => 'Merbau',
+        'price_per_tree' => 30000,
+        'target_trees' => 1500,
+        'current_trees' => 320,
+        'image' => 'https://images.unsplash.com/photo-1425913397330-cf8af2ff40a1?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
+        'description' => 'Konservasi hutan tropis Papua untuk melindungi keanekaragaman hayati.',
+        'donors' => 67,
+        'days_left' => 90
+    ],
+    [
+        'id' => 6,
+        'title' => 'Mangrove Pesisir Jakarta',
+        'location' => 'Jakarta Utara',
+        'tree_type' => 'Mangrove',
+        'price_per_tree' => 10000,
+        'target_trees' => 3500,
+        'current_trees' => 1250,
+        'image' => 'https://images.unsplash.com/photo-1621451498295-af1ea68616ee?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
+        'description' => 'Penanaman mangrove di kawasan pesisir Jakarta Utara untuk perlindungan banjir rob.',
+        'donors' => 198,
+        'days_left' => 25
+    ]
+];
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -248,7 +324,7 @@ switch ($page) {
                         <i class="fas fa-shopping-cart text-xl"></i>
                         <span class="absolute -top-1 -right-1 bg-primary-600 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">0</span>
                     </a>
-                    <a href="admin/index.php" class="hidden md:inline-flex items-center px-4 py-2 border-2 border-primary-600 text-primary-700 font-semibold rounded-xl hover:bg-primary-50 transition">
+                    <a href="admin/login.php" class="hidden md:inline-flex items-center px-4 py-2 border-2 border-primary-600 text-primary-700 font-semibold rounded-xl hover:bg-primary-50 transition">
                         <i class="fas fa-user-shield mr-2"></i>Admin
                     </a>
                     <a href="#campaigns" class="inline-flex items-center px-5 py-2.5 bg-gradient-to-r from-primary-600 to-primary-700 text-white font-semibold rounded-xl hover:from-primary-700 hover:to-primary-800 transition shadow-lg shadow-primary-600/25">
@@ -540,7 +616,7 @@ switch ($page) {
             
             <!-- View All Button -->
             <div class="text-center mt-12" data-aos="fade-up">
-                <a href="campaign-detail.php" class="inline-flex items-center px-8 py-4 bg-white border-2 border-primary-600 text-primary-700 font-bold rounded-2xl hover:bg-primary-50 transition shadow-lg">
+                <a href="campaign.php" class="inline-flex items-center px-8 py-4 bg-white border-2 border-primary-600 text-primary-700 font-bold rounded-2xl hover:bg-primary-50 transition shadow-lg">
                     <i class="fas fa-tree mr-2"></i>
                     Lihat Semua Campaign
                     <i class="fas fa-arrow-right ml-2"></i>
