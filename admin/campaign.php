@@ -343,6 +343,15 @@ $current_page = 'campaign';
 
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Deskripsi Lengkap (Long Description)
+                            </label>
+                            <textarea name="long_description" rows="8"
+                                placeholder="Tulis deskripsi lengkap tentang campaign, latar belakang, dampak lingkungan, dan informasi detail lainnya..."
+                                class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-primary-600 focus:ring-2 focus:ring-primary-100 outline-none transition"><?php echo $edit_campaign ? htmlspecialchars($edit_campaign['long_description'] ?? '') : ''; ?></textarea>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
                                 Upload Gambar Campaign
                             </label>
                             <?php if ($edit_campaign && !empty($edit_campaign['image'])): ?>

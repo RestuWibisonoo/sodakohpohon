@@ -33,7 +33,7 @@ foreach ($all_campaigns as $c) {
     $campaigns[] = [
         'id' => $c['id'],
         'name' => $c['title'],
-        'remaining' => $c['target_trees'] - $c['current_trees']
+        'remaining' => max(0, $c['current_trees'] - $c['planted_trees'])
     ];
 }
 
@@ -234,8 +234,8 @@ endif; ?>
                                     <option value="">-- Pilih Campaign --</option>
                                     <?php foreach ($campaigns as $campaign): ?>
                                     <option value="<?php echo $campaign['id']; ?>" <?php echo ($edit_planting &&
-            $edit_planting['campaign_id'] == $campaign['id']) ? 'selected' : ''; ?>>
-                                        <?php echo htmlspecialchars($campaign['name']); ?> (Sisa:
+                                        $edit_planting['campaign_id']==$campaign['id']) ? 'selected' : '' ; ?>>
+                                        <?php echo htmlspecialchars($campaign['name']); ?> (Siap tanam:
                                         <?php echo number_format($campaign['remaining']); ?> pohon)
                                     </option>
                                     <?php
