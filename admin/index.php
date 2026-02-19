@@ -1,138 +1,104 @@
 <?php
 // admin/index.php
 session_start();
+require_once '../config/koneksi.php';
+require_once '../models/Campaign.php';
+require_once '../models/Donation.php';
 
-// Simulasi data statistik
- $today_donations = 1850000;
- $today_donors = 28;
- $total_trees_collected = 15234;
- $total_trees_planted = 8750;
- $total_donors = 3241;
- $total_donations_amount = 187650000;
- $pending_planting = 6484;
+// Cek autentikasi
+if (!isAdminLoggedIn()) {
+    header('Location: login.php');
+    exit;
+}
 
-// Simulasi data campaign untuk progress
- $campaigns = [
-    [
-        'name' => 'Restorasi Mangrove Demak',
-        'collected' => 1450,
-        'target' => 5000,
-        'planted' => 890,
-        'deadline' => '2026-03-30'
-    ],
-    [
-        'name' => 'Reboisasi Lereng Merapi',
-        'collected' => 2300,
-        'target' => 4000,
-        'planted' => 1650,
-        'deadline' => '2026-03-15'
-    ],
-    [
-        'name' => 'Penghijauan Hutan Lombok',
-        'collected' => 780,
-        'target' => 3000,
-        'planted' => 450,
-        'deadline' => '2026-04-20'
-    ],
-    [
-        'name' => 'Mangrove Pesisir Jakarta',
-        'collected' => 1250,
-        'target' => 3500,
-        'planted' => 840,
-        'deadline' => '2026-03-25'
-    ]
-];
+// Ambil data dari database
+$campaignModel = new Campaign();
+$donationModel = new Donation();
 
-// Simulasi donasi terbaru
- $recent_donations = [
-    [
-        'donor' => 'Ahmad Fauzi',
-        'campaign' => 'Restorasi Mangrove Demak',
-        'trees' => 10,
-        'amount' => 100000,
-        'date' => '2026-02-28 14:23:45'
-    ],
-    [
-        'donor' => 'Sarah Putri',
-        'campaign' => 'Reboisasi Lereng Merapi',
-        'trees' => 5,
-        'amount' => 60000,
-        'date' => '2026-02-28 11:15:22'
-    ],
-    [
-        'donor' => 'Anonymous',
-        'campaign' => 'Mangrove Pesisir Jakarta',
-        'trees' => 3,
-        'amount' => 30000,
-        'date' => '2026-02-28 09:45:10'
-    ],
-    [
-        'donor' => 'Dewi Lestari',
-        'campaign' => 'Penghijauan Hutan Lombok',
-        'trees' => 7,
-        'amount' => 105000,
-        'date' => '2026-02-27 16:30:50'
-    ],
-    [
-        'donor' => 'Budi Santoso',
-        'campaign' => 'Restorasi Mangrove Demak',
-        'trees' => 2,
-        'amount' => 20000,
-        'date' => '2026-02-27 13:12:30'
-    ]
-];
+// Statistik
+$campaign_stats = $campaignModel->getStats();
+$donation_stats = $donationModel->getStats();
 
-// Simulasi penanaman terbaru
- $recent_plantings = [
-    [
-        'campaign' => 'Restorasi Mangrove Demak',
-        'location' => 'Demak, Jawa Tengah',
-        'trees' => 350,
-        'volunteers' => 45,
-        'date' => '2026-02-15'
-    ],
-    [
-        'campaign' => 'Reboisasi Lereng Merapi',
-        'location' => 'Magelang, Jawa Tengah',
-        'trees' => 500,
-        'volunteers' => 78,
-        'date' => '2026-02-10'
-    ],
-    [
-        'campaign' => 'Mangrove Pesisir Jakarta',
-        'location' => 'Jakarta Utara',
-        'trees' => 280,
-        'volunteers' => 52,
-        'date' => '2026-02-05'
-    ],
-    [
-        'campaign' => 'Penghijauan Hutan Lombok',
-        'location' => 'Lombok, NTB',
-        'trees' => 450,
-        'volunteers' => 63,
-        'date' => '2026-01-28'
-    ]
-];
+$today_donations = $donation_stats['today_amount'] ?? 0;
+$today_donors = $donation_stats['today_donations'] ?? 0;
+$total_trees_collected = $campaign_stats['total_trees_collected'] ?? 0;
+$total_trees_planted = $campaign_stats['total_trees_planted'] ?? 0;
+$total_donors = $donation_stats['total_donors'] ?? 0;
+$total_donations_amount = $donation_stats['total_amount'] ?? 0;
+$pending_planting = max(0, $total_trees_collected - $total_trees_planted);
+$pending_donations = $donation_stats['pending_donations'] ?? 0;
+$active_campaigns_count = $campaign_stats['active_campaigns'] ?? 0;
+
+// Campaign aktif untuk progress
+$active_campaigns = $campaignModel->getActiveCampaigns(4);
+$campaigns = [];
+foreach ($active_campaigns as $c) {
+    $campaigns[] = [
+        'name' => $c['title'],
+        'collected' => $c['current_trees'],
+        'target' => $c['target_trees'],
+        'planted' => $c['planted_trees'],
+        'deadline' => $c['deadline']
+    ];
+}
+
+// Donasi terbaru
+$raw_donations = $donationModel->getAll(null, null, 5);
+$recent_donations = [];
+foreach ($raw_donations as $d) {
+    $recent_donations[] = [
+        'donor' => $d['anonymous'] ? 'Anonymous' : $d['donor_name'],
+        'campaign' => $d['campaign_title'] ?? '-',
+        'trees' => $d['trees_count'],
+        'amount' => $d['amount'],
+        'date' => $d['created_at']
+    ];
+}
+
+// Penanaman terbaru
+$conn = getDB();
+$sql = "SELECT p.*, c.title as campaign_name 
+        FROM plantings p 
+        LEFT JOIN campaigns c ON p.campaign_id = c.id 
+        ORDER BY p.planting_date DESC 
+        LIMIT 4";
+$result = $conn->query($sql);
+$recent_plantings = [];
+if ($result && $result->num_rows > 0) {
+    while ($row = $result->fetch_assoc()) {
+        $recent_plantings[] = [
+            'campaign' => $row['campaign_name'],
+            'location' => $row['location'],
+            'trees' => $row['trees_planted'],
+            'volunteers' => $row['volunteers'],
+            'date' => $row['planting_date']
+        ];
+    }
+}
+
+$current_page = 'dashboard';
 ?>
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard Admin - Sodakoh Pohon</title>
-    
+
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
+
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
+
     <!-- Google Fonts Inter -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-    
+
     <script>
         tailwind.config = {
             theme: {
@@ -158,43 +124,43 @@ session_start();
             }
         }
     </script>
-    
+
     <style>
         body {
             font-family: 'Inter', sans-serif;
             background-color: #f3f4f6;
         }
-        
+
         .sidebar-link {
             transition: all 0.2s ease;
         }
-        
+
         .sidebar-link:hover {
             background-color: rgba(5, 150, 105, 0.1);
             color: #059669;
         }
-        
+
         .sidebar-link.active {
             background-color: #059669;
             color: white;
         }
-        
+
         .stat-card {
             transition: all 0.3s ease;
         }
-        
+
         .stat-card:hover {
             transform: translateY(-3px);
-            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.05);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05);
         }
-        
+
         .progress-bar {
             height: 8px;
             border-radius: 100px;
             background-color: #e5e7eb;
             overflow: hidden;
         }
-        
+
         .progress-fill {
             height: 100%;
             background: linear-gradient(90deg, #10b981 0%, #059669 100%);
@@ -202,119 +168,10 @@ session_start();
         }
     </style>
 </head>
+
 <body>
     <div class="flex h-screen bg-gray-100">
-        <!-- Sidebar -->
-        <aside class="w-72 bg-white shadow-xl flex flex-col fixed h-full overflow-y-auto">
-            <!-- Logo -->
-            <div class="p-6 border-b border-gray-200">
-                <div class="flex items-center space-x-3">
-                    <div class="bg-gradient-to-br from-primary-600 to-primary-700 rounded-xl p-2.5">
-                        <i class="fas fa-tree text-white text-2xl"></i>
-                    </div>
-                    <div class="flex flex-col">
-                        <span class="text-xl font-extrabold">
-                            <span class="text-primary-700">Sodakoh</span>
-                            <span class="text-gray-800">Pohon</span>
-                        </span>
-                        <span class="text-xs text-gray-500">Administrator Panel</span>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Admin Profile -->
-            <div class="p-6 border-b border-gray-200 bg-gradient-to-r from-primary-50 to-white">
-                <div class="flex items-center">
-                    <div class="relative">
-                        <img src="https://ui-avatars.com/api/?name=Admin+Sodakoh&background=059669&color=fff&size=64" 
-                             alt="Admin" 
-                             class="w-12 h-12 rounded-xl border-2 border-white shadow-lg">
-                        <div class="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
-                    </div>
-                    <div class="ml-4">
-                        <p class="font-semibold text-gray-900">Admin Sodakoh</p>
-                        <p class="text-xs text-gray-500">admin@sodakohpohon.id</p>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Navigation -->
-            <nav class="flex-1 p-4">
-                <div class="mb-6">
-                    <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider px-4 mb-2">Main Menu</p>
-                    <ul class="space-y-1">
-                        <li>
-                            <a href="index.php" class="sidebar-link active flex items-center px-4 py-3 rounded-xl text-white bg-primary-600">
-                                <i class="fas fa-dashboard w-6"></i>
-                                <span class="ml-3 font-medium">Dashboard</span>
-                            </a>
-                        </li>
-                        <li>
-                            <a href="campaign.php" class="sidebar-link flex items-center px-4 py-3 rounded-xl text-gray-700 hover:bg-primary-50">
-                                <i class="fas fa-tree w-6 text-gray-500"></i>
-                                <span class="ml-3 font-medium">Campaign</span>
-                            </a>
-                        </li>
-                        <li>
-                            <a href="donations.php" class="sidebar-link flex items-center px-4 py-3 rounded-xl text-gray-700 hover:bg-primary-50">
-                                <i class="fas fa-hand-holding-heart w-6 text-gray-500"></i>
-                                <span class="ml-3 font-medium">Donasi</span>
-                            </a>
-                        </li>
-                        <li>
-                            <a href="planted.php" class="sidebar-link flex items-center px-4 py-3 rounded-xl text-gray-700 hover:bg-primary-50">
-                                <i class="fas fa-seedling w-6 text-gray-500"></i>
-                                <span class="ml-3 font-medium">Penanaman</span>
-                            </a>
-                        </li>
-                    </ul>
-                </div>
-                
-                <div class="mb-6">
-                    <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider px-4 mb-2">Laporan</p>
-                    <ul class="space-y-1">
-                        <li>
-                            <a href="#" class="sidebar-link flex items-center px-4 py-3 rounded-xl text-gray-700 hover:bg-primary-50">
-                                <i class="fas fa-chart-line w-6 text-gray-500"></i>
-                                <span class="ml-3 font-medium">Statistik</span>
-                            </a>
-                        </li>
-                        <li>
-                            <a href="#" class="sidebar-link flex items-center px-4 py-3 rounded-xl text-gray-700 hover:bg-primary-50">
-                                <i class="fas fa-file-export w-6 text-gray-500"></i>
-                                <span class="ml-3 font-medium">Ekspor Data</span>
-                            </a>
-                        </li>
-                    </ul>
-                </div>
-                
-                <div class="mb-6">
-                    <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider px-4 mb-2">Pengaturan</p>
-                    <ul class="space-y-1">
-                        <li>
-                            <a href="#" class="sidebar-link flex items-center px-4 py-3 rounded-xl text-gray-700 hover:bg-primary-50">
-                                <i class="fas fa-user-cog w-6 text-gray-500"></i>
-                                <span class="ml-3 font-medium">Profil</span>
-                            </a>
-                        </li>
-                        <li>
-                            <a href="../index.php" class="sidebar-link flex items-center px-4 py-3 rounded-xl text-gray-700 hover:bg-primary-50">
-                                <i class="fas fa-sign-out-alt w-6 text-gray-500"></i>
-                                <span class="ml-3 font-medium">Keluar</span>
-                            </a>
-                        </li>
-                    </ul>
-                </div>
-            </nav>
-            
-            <!-- Version Info -->
-            <div class="p-4 border-t border-gray-200">
-                <p class="text-xs text-gray-500 text-center">
-                    Sodakoh Pohon v1.0.0<br>
-                    &copy; 2026 All rights reserved
-                </p>
-            </div>
-        </aside>
+        <?php include 'includes/sidebar.php'; ?>
 
         <!-- Main Content -->
         <main class="flex-1 ml-72 overflow-y-auto">
@@ -322,14 +179,14 @@ session_start();
             <header class="bg-white shadow-sm sticky top-0 z-30">
                 <div class="flex justify-between items-center px-8 py-4">
                     <h1 class="text-2xl font-bold text-gray-900">Dashboard</h1>
-                    
+
                     <div class="flex items-center space-x-4">
                         <!-- Notifications -->
                         <button class="relative p-2 text-gray-500 hover:text-primary-600 transition">
                             <i class="fas fa-bell text-xl"></i>
                             <span class="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></span>
                         </button>
-                        
+
                         <!-- Date -->
                         <div class="flex items-center text-sm text-gray-600 bg-gray-100 rounded-xl px-4 py-2">
                             <i class="fas fa-calendar-alt mr-2 text-primary-600"></i>
@@ -351,8 +208,12 @@ session_start();
                         <div class="hidden md:block">
                             <div class="bg-white/20 backdrop-blur-sm rounded-xl px-6 py-3">
                                 <p class="text-sm text-white/80">Donasi Hari Ini</p>
-                                <p class="text-2xl font-bold">Rp <?php echo number_format($today_donations); ?></p>
-                                <p class="text-xs text-white/70">dari <?php echo $today_donors; ?> donatur</p>
+                                <p class="text-2xl font-bold">Rp
+                                    <?php echo number_format($today_donations); ?>
+                                </p>
+                                <p class="text-xs text-white/70">dari
+                                    <?php echo $today_donors; ?> donatur
+                                </p>
                             </div>
                         </div>
                     </div>
@@ -366,53 +227,62 @@ session_start();
                                 <i class="fas fa-tree text-primary-600 text-xl"></i>
                             </div>
                             <span class="text-xs font-semibold text-primary-600 bg-primary-50 px-3 py-1 rounded-full">
-                                +12.5%
+                                <?php echo $active_campaigns_count; ?> aktif
                             </span>
                         </div>
                         <p class="text-sm text-gray-500 mb-1">Total Pohon Terkumpul</p>
-                        <p class="text-3xl font-extrabold text-gray-900"><?php echo number_format($total_trees_collected); ?></p>
+                        <p class="text-3xl font-extrabold text-gray-900">
+                            <?php echo number_format($total_trees_collected); ?>
+                        </p>
                         <p class="text-xs text-gray-400 mt-2">sejak awal program</p>
                     </div>
-                    
+
                     <div class="stat-card bg-white rounded-2xl p-6 shadow-sm hover:shadow-md">
                         <div class="flex items-center justify-between mb-4">
                             <div class="w-12 h-12 bg-earth-100 rounded-xl flex items-center justify-center">
                                 <i class="fas fa-seedling text-earth-600 text-xl"></i>
                             </div>
                             <span class="text-xs font-semibold text-orange-600 bg-orange-50 px-3 py-1 rounded-full">
-                                <?php echo number_format($pending_planting); ?> pending
+                                <?php echo number_format($pending_planting); ?> belum tanam
                             </span>
                         </div>
                         <p class="text-sm text-gray-500 mb-1">Pohon Tertanam</p>
-                        <p class="text-3xl font-extrabold text-gray-900"><?php echo number_format($total_trees_planted); ?></p>
+                        <p class="text-3xl font-extrabold text-gray-900">
+                            <?php echo number_format($total_trees_planted); ?>
+                        </p>
                         <p class="text-xs text-gray-400 mt-2">realisasi penanaman</p>
                     </div>
-                    
+
                     <div class="stat-card bg-white rounded-2xl p-6 shadow-sm hover:shadow-md">
                         <div class="flex items-center justify-between mb-4">
                             <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
                                 <i class="fas fa-users text-blue-600 text-xl"></i>
                             </div>
                             <span class="text-xs font-semibold text-blue-600 bg-blue-50 px-3 py-1 rounded-full">
-                                +28
+                                +
+                                <?php echo $donation_stats['today_donations'] ?? 0; ?>
                             </span>
                         </div>
                         <p class="text-sm text-gray-500 mb-1">Total Donatur</p>
-                        <p class="text-3xl font-extrabold text-gray-900"><?php echo number_format($total_donors); ?></p>
+                        <p class="text-3xl font-extrabold text-gray-900">
+                            <?php echo number_format($total_donors); ?>
+                        </p>
                         <p class="text-xs text-gray-400 mt-2">orang telah berdonasi</p>
                     </div>
-                    
+
                     <div class="stat-card bg-white rounded-2xl p-6 shadow-sm hover:shadow-md">
                         <div class="flex items-center justify-between mb-4">
                             <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
                                 <i class="fas fa-credit-card text-purple-600 text-xl"></i>
                             </div>
                             <span class="text-xs font-semibold text-purple-600 bg-purple-50 px-3 py-1 rounded-full">
-                                +15%
+                                <?php echo $pending_donations; ?> pending
                             </span>
                         </div>
                         <p class="text-sm text-gray-500 mb-1">Total Donasi</p>
-                        <p class="text-3xl font-extrabold text-gray-900">Rp <?php echo number_format($total_donations_amount / 1000000, 1); ?>M</p>
+                        <p class="text-3xl font-extrabold text-gray-900">Rp
+                            <?php echo number_format($total_donations_amount / 1000000, 1); ?>M
+                        </p>
                         <p class="text-xs text-gray-400 mt-2">terkumpul</p>
                     </div>
                 </div>
@@ -425,24 +295,24 @@ session_start();
                             Aksi Cepat
                         </h3>
                         <div class="space-y-3">
-                            <a href="campaign.php?action=create" 
-                               class="flex items-center justify-between w-full p-3 bg-primary-50 hover:bg-primary-100 rounded-xl transition">
+                            <a href="campaign.php?action=create"
+                                class="flex items-center justify-between w-full p-3 bg-primary-50 hover:bg-primary-100 rounded-xl transition">
                                 <span class="flex items-center">
                                     <i class="fas fa-plus text-primary-600 mr-3"></i>
                                     <span class="font-medium text-gray-700">Buat Campaign Baru</span>
                                 </span>
                                 <i class="fas fa-chevron-right text-gray-400"></i>
                             </a>
-                            <a href="planted.php?action=create" 
-                               class="flex items-center justify-between w-full p-3 bg-earth-50 hover:bg-earth-100 rounded-xl transition">
+                            <a href="planted.php?action=create"
+                                class="flex items-center justify-between w-full p-3 bg-earth-50 hover:bg-earth-100 rounded-xl transition">
                                 <span class="flex items-center">
                                     <i class="fas fa-seedling text-earth-600 mr-3"></i>
                                     <span class="font-medium text-gray-700">Update Penanaman</span>
                                 </span>
                                 <i class="fas fa-chevron-right text-gray-400"></i>
                             </a>
-                            <a href="donations.php?action=export" 
-                               class="flex items-center justify-between w-full p-3 bg-blue-50 hover:bg-blue-100 rounded-xl transition">
+                            <a href="donations.php?action=export"
+                                class="flex items-center justify-between w-full p-3 bg-blue-50 hover:bg-blue-100 rounded-xl transition">
                                 <span class="flex items-center">
                                     <i class="fas fa-file-export text-blue-600 mr-3"></i>
                                     <span class="font-medium text-gray-700">Ekspor Laporan</span>
@@ -451,27 +321,34 @@ session_start();
                             </a>
                         </div>
                     </div>
-                    
+
                     <!-- Campaign Progress -->
                     <div class="lg:col-span-2 bg-white rounded-2xl p-6 shadow-sm">
                         <div class="flex justify-between items-center mb-4">
                             <h3 class="font-bold text-gray-900">Progress Campaign Aktif</h3>
-                            <a href="campaign.php" class="text-sm text-primary-600 hover:text-primary-700 font-semibold">
+                            <a href="campaign.php"
+                                class="text-sm text-primary-600 hover:text-primary-700 font-semibold">
                                 Lihat Semua
                                 <i class="fas fa-arrow-right ml-1"></i>
                             </a>
                         </div>
                         <div class="space-y-4">
-                            <?php foreach ($campaigns as $campaign): 
-                                $progress = ($campaign['collected'] / $campaign['target']) * 100;
-                                $planted_percent = ($campaign['planted'] / $campaign['collected']) * 100;
-                                if ($campaign['collected'] == 0) $planted_percent = 0;
-                            ?>
+                            <?php if (empty($campaigns)): ?>
+                            <p class="text-gray-400 text-center py-4">Belum ada campaign aktif</p>
+                            <?php
+endif; ?>
+                            <?php foreach ($campaigns as $campaign):
+    $progress = $campaign['target'] > 0 ? ($campaign['collected'] / $campaign['target']) * 100 : 0;
+    $planted_percent = $campaign['collected'] > 0 ? ($campaign['planted'] / $campaign['collected']) * 100 : 0;
+?>
                             <div>
                                 <div class="flex justify-between items-center mb-1">
-                                    <span class="font-medium text-gray-900"><?php echo $campaign['name']; ?></span>
+                                    <span class="font-medium text-gray-900">
+                                        <?php echo $campaign['name']; ?>
+                                    </span>
                                     <span class="text-sm text-gray-600">
-                                        <?php echo number_format($campaign['collected']); ?>/<?php echo number_format($campaign['target']); ?>
+                                        <?php echo number_format($campaign['collected']); ?>/
+                                        <?php echo number_format($campaign['target']); ?>
                                     </span>
                                 </div>
                                 <div class="flex items-center gap-4">
@@ -480,20 +357,26 @@ session_start();
                                             <div class="progress-fill" style="width: <?php echo $progress; ?>%"></div>
                                         </div>
                                     </div>
-                                    <span class="text-xs font-semibold text-primary-700"><?php echo round($progress); ?>%</span>
+                                    <span class="text-xs font-semibold text-primary-700">
+                                        <?php echo round($progress); ?>%
+                                    </span>
                                 </div>
                                 <div class="flex justify-between mt-1">
                                     <span class="text-xs text-gray-500">
                                         <i class="fas fa-seedling mr-1 text-earth-600"></i>
-                                        Tertanam: <?php echo number_format($campaign['planted']); ?> (<?php echo round($planted_percent); ?>%)
+                                        Tertanam:
+                                        <?php echo number_format($campaign['planted']); ?> (
+                                        <?php echo round($planted_percent); ?>%)
                                     </span>
                                     <span class="text-xs text-gray-500">
                                         <i class="fas fa-clock mr-1 text-orange-500"></i>
-                                        Deadline: <?php echo date('d/m/Y', strtotime($campaign['deadline'])); ?>
+                                        Deadline:
+                                        <?php echo date('d/m/Y', strtotime($campaign['deadline'])); ?>
                                     </span>
                                 </div>
                             </div>
-                            <?php endforeach; ?>
+                            <?php
+endforeach; ?>
                         </div>
                     </div>
                 </div>
@@ -507,35 +390,49 @@ session_start();
                                 <i class="fas fa-hand-holding-heart text-primary-600 mr-2"></i>
                                 Donasi Terbaru
                             </h3>
-                            <a href="donations.php" class="text-sm text-primary-600 hover:text-primary-700 font-semibold">
+                            <a href="donations.php"
+                                class="text-sm text-primary-600 hover:text-primary-700 font-semibold">
                                 Lihat Semua
                             </a>
                         </div>
                         <div class="space-y-4">
+                            <?php if (empty($recent_donations)): ?>
+                            <p class="text-gray-400 text-center py-8">Belum ada data donasi</p>
+                            <?php
+endif; ?>
                             <?php foreach ($recent_donations as $donation): ?>
                             <div class="flex items-center justify-between p-3 hover:bg-gray-50 rounded-xl transition">
                                 <div class="flex items-center">
-                                    <div class="w-10 h-10 bg-gradient-to-br from-primary-100 to-primary-200 rounded-full flex items-center justify-center mr-3">
+                                    <div
+                                        class="w-10 h-10 bg-gradient-to-br from-primary-100 to-primary-200 rounded-full flex items-center justify-center mr-3">
                                         <span class="font-bold text-primary-700">
                                             <?php echo substr($donation['donor'], 0, 1); ?>
                                         </span>
                                     </div>
                                     <div>
-                                        <p class="font-medium text-gray-900"><?php echo $donation['donor']; ?></p>
+                                        <p class="font-medium text-gray-900">
+                                            <?php echo $donation['donor']; ?>
+                                        </p>
                                         <p class="text-xs text-gray-500">
-                                            <?php echo $donation['campaign']; ?> • <?php echo $donation['trees']; ?> pohon
+                                            <?php echo $donation['campaign']; ?> •
+                                            <?php echo $donation['trees']; ?> pohon
                                         </p>
                                     </div>
                                 </div>
                                 <div class="text-right">
-                                    <p class="font-semibold text-gray-900">Rp <?php echo number_format($donation['amount']); ?></p>
-                                    <p class="text-xs text-gray-400"><?php echo date('H:i', strtotime($donation['date'])); ?></p>
+                                    <p class="font-semibold text-gray-900">Rp
+                                        <?php echo number_format($donation['amount']); ?>
+                                    </p>
+                                    <p class="text-xs text-gray-400">
+                                        <?php echo date('H:i', strtotime($donation['date'])); ?>
+                                    </p>
                                 </div>
                             </div>
-                            <?php endforeach; ?>
+                            <?php
+endforeach; ?>
                         </div>
                     </div>
-                    
+
                     <!-- Recent Plantings -->
                     <div class="bg-white rounded-2xl shadow-sm p-6">
                         <div class="flex justify-between items-center mb-4">
@@ -548,15 +445,22 @@ session_start();
                             </a>
                         </div>
                         <div class="space-y-4">
+                            <?php if (empty($recent_plantings)): ?>
+                            <p class="text-gray-400 text-center py-8">Belum ada data penanaman</p>
+                            <?php
+endif; ?>
                             <?php foreach ($recent_plantings as $planting): ?>
                             <div class="flex items-start p-3 hover:bg-gray-50 rounded-xl transition">
-                                <div class="w-10 h-10 bg-earth-100 rounded-xl flex items-center justify-center mr-3 flex-shrink-0">
+                                <div
+                                    class="w-10 h-10 bg-earth-100 rounded-xl flex items-center justify-center mr-3 flex-shrink-0">
                                     <i class="fas fa-tree text-earth-600"></i>
                                 </div>
                                 <div class="flex-1">
                                     <div class="flex justify-between items-start">
                                         <div>
-                                            <p class="font-medium text-gray-900"><?php echo $planting['campaign']; ?></p>
+                                            <p class="font-medium text-gray-900">
+                                                <?php echo $planting['campaign']; ?>
+                                            </p>
                                             <p class="text-xs text-gray-500 mb-1">
                                                 <i class="fas fa-map-marker-alt mr-1 text-primary-600"></i>
                                                 <?php echo $planting['location']; ?>
@@ -578,7 +482,8 @@ session_start();
                                     </div>
                                 </div>
                             </div>
-                            <?php endforeach; ?>
+                            <?php
+endforeach; ?>
                         </div>
                     </div>
                 </div>
@@ -588,9 +493,10 @@ session_start();
 
     <script>
         // Initialize any charts if needed
-        window.addEventListener('load', function() {
+        window.addEventListener('load', function () {
             // Add any chart initialization here
         });
     </script>
 </body>
+
 </html>
