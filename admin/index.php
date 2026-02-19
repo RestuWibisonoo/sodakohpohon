@@ -115,6 +115,18 @@ $current_page = 'dashboard';
                             700: '#047857',
                             800: '#065f46',
                             900: '#064e3b',
+                        },
+                        earth: {
+                            50: '#fdf8f0',
+                            100: '#f5eadb',
+                            200: '#e8d5b8',
+                            300: '#d4b896',
+                            400: '#c09b74',
+                            500: '#a67c52',
+                            600: '#8b6914',
+                            700: '#6b4f10',
+                            800: '#4b370b',
+                            900: '#2b2007',
                         }
                     },
                     fontFamily: {
@@ -155,16 +167,33 @@ $current_page = 'dashboard';
         }
 
         .progress-bar {
-            height: 8px;
+            height: 10px;
             border-radius: 100px;
             background-color: #e5e7eb;
+            position: relative;
             overflow: hidden;
         }
 
-        .progress-fill {
+        .progress-fill-donated {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            background: linear-gradient(90deg, #f59e0b 0%, #eab308 100%);
+            border-radius: 100px;
+            transition: width 1s ease;
+            z-index: 1;
+        }
+
+        .progress-fill-planted {
+            position: absolute;
+            top: 0;
+            left: 0;
             height: 100%;
             background: linear-gradient(90deg, #10b981 0%, #059669 100%);
             border-radius: 100px;
+            transition: width 1s ease;
+            z-index: 2;
         }
     </style>
 </head>
@@ -338,8 +367,8 @@ $current_page = 'dashboard';
                             <?php
 endif; ?>
                             <?php foreach ($campaigns as $campaign):
-    $progress = $campaign['target'] > 0 ? ($campaign['collected'] / $campaign['target']) * 100 : 0;
-    $planted_percent = $campaign['collected'] > 0 ? ($campaign['planted'] / $campaign['collected']) * 100 : 0;
+    $donated_pct = $campaign['target'] > 0 ? min(($campaign['collected'] / $campaign['target']) * 100, 100) : 0;
+    $planted_pct = $campaign['target'] > 0 ? min(($campaign['planted'] / $campaign['target']) * 100, 100) : 0;
 ?>
                             <div>
                                 <div class="flex justify-between items-center mb-1">
@@ -354,23 +383,33 @@ endif; ?>
                                 <div class="flex items-center gap-4">
                                     <div class="flex-1">
                                         <div class="progress-bar">
-                                            <div class="progress-fill" style="width: <?php echo $progress; ?>%"></div>
+                                            <div class="progress-fill-donated"
+                                                style="width: <?php echo $donated_pct; ?>%"></div>
+                                            <div class="progress-fill-planted"
+                                                style="width: <?php echo $planted_pct; ?>%"></div>
                                         </div>
                                     </div>
                                     <span class="text-xs font-semibold text-primary-700">
-                                        <?php echo round($progress); ?>%
+                                        <?php echo round($donated_pct); ?>%
                                     </span>
                                 </div>
                                 <div class="flex justify-between mt-1">
-                                    <span class="text-xs text-gray-500">
-                                        <i class="fas fa-seedling mr-1 text-earth-600"></i>
-                                        Tertanam:
-                                        <?php echo number_format($campaign['planted']); ?> (
-                                        <?php echo round($planted_percent); ?>%)
-                                    </span>
+                                    <div class="flex items-center gap-3">
+                                        <span class="text-xs text-gray-500 flex items-center">
+                                            <span
+                                                class="inline-block w-2.5 h-2.5 rounded-full bg-yellow-400 mr-1.5"></span>
+                                            Terkumpul:
+                                            <?php echo number_format($campaign['collected']); ?>
+                                        </span>
+                                        <span class="text-xs text-gray-500 flex items-center">
+                                            <span
+                                                class="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500 mr-1.5"></span>
+                                            Tertanam:
+                                            <?php echo number_format($campaign['planted']); ?>
+                                        </span>
+                                    </div>
                                     <span class="text-xs text-gray-500">
                                         <i class="fas fa-clock mr-1 text-orange-500"></i>
-                                        Deadline:
                                         <?php echo date('d/m/Y', strtotime($campaign['deadline'])); ?>
                                     </span>
                                 </div>
@@ -494,7 +533,7 @@ endforeach; ?>
     <script>
         // Initialize any charts if needed
         window.addEventListener('load', function () {
-            // Add any chart initialization here
+            // Add any chart initiati
         });
     </script>
 </body>

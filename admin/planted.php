@@ -218,7 +218,7 @@ endif; ?>
                 <?php if ($action == 'create' || $action == 'edit'): ?>
                 <!-- Form Update Penanaman -->
                 <div class="bg-white rounded-2xl shadow-sm p-8">
-                    <form id="plantingForm" class="space-y-6">
+                    <form id="plantingForm" method="POST" enctype="multipart/form-data" class="space-y-6">
                         <?php if ($edit_planting): ?>
                         <input type="hidden" name="id" value="<?php echo $edit_planting['id']; ?>">
                         <?php
@@ -234,7 +234,7 @@ endif; ?>
                                     <option value="">-- Pilih Campaign --</option>
                                     <?php foreach ($campaigns as $campaign): ?>
                                     <option value="<?php echo $campaign['id']; ?>" <?php echo ($edit_planting &&
-                                        $edit_planting['campaign_id']==$campaign['id']) ? 'selected' : '' ; ?>>
+            $edit_planting['campaign_id'] == $campaign['id']) ? 'selected' : ''; ?>>
                                         <?php echo htmlspecialchars($campaign['name']); ?> (Sisa:
                                         <?php echo number_format($campaign['remaining']); ?> pohon)
                                     </option>
@@ -581,144 +581,146 @@ endif; ?>
     </div>
 
     <script>
-        // ============================================================
-        // FORM SUBMISSION — POST to adminController.php
-        // ============================================================
-        document.getElementById('plantingForm')?.addEventListener('submit', function (e) {
-            e.preventDefault();
+        document.addEventListener('DOMContentLoaded', function () {
+            // ============================================================
+            // FORM SUBMISSION — POST to adminController.php
+            // ============================================================
+            document.getElementById('plantingForm')?.addEventListener('submit', function (e) {
+                e.preventDefault();
 
-            const form = this;
-            const formData = new FormData(form);
-            const isEdit = formData.has('id');
-            const action = isEdit ? 'update_planting' : 'store_planting';
-            const submitBtn = document.getElementById('submitBtn');
-            const spinner = document.getElementById('submitSpinner');
+                const form = this;
+                const formData = new FormData(form);
+                const isEdit = formData.has('id');
+                const action = isEdit ? 'update_planting' : 'store_planting';
+                const submitBtn = document.getElementById('submitBtn');
+                const spinner = document.getElementById('submitSpinner');
 
-            submitBtn.disabled = true;
-            spinner.classList.remove('hidden');
+                submitBtn.disabled = true;
+                spinner.classList.remove('hidden');
 
-            fetch('../controllers/adminController.php?action=' + action, {
-                method: 'POST',
-                body: formData
-            })
-                .then(res => res.json())
-                .then(data => {
-                    submitBtn.disabled = false;
-                    spinner.classList.add('hidden');
-
-                    if (data.success) {
-                        Swal.fire({
-                            title: 'Sukses!',
-                            text: data.message,
-                            icon: 'success',
-                            confirmButtonColor: '#059669',
-                            confirmButtonText: 'OK'
-                        }).then(() => {
-                            window.location.href = 'planted.php';
-                        });
-                    } else {
-                        Swal.fire('Error', data.message, 'error');
-                    }
+                fetch('../controllers/adminController.php?action=' + action, {
+                    method: 'POST',
+                    body: formData
                 })
-                .catch(err => {
-                    submitBtn.disabled = false;
-                    spinner.classList.add('hidden');
-                    Swal.fire('Error', 'Terjadi kesalahan koneksi', 'error');
-                });
-        });
+                    .then(res => res.json())
+                    .then(data => {
+                        submitBtn.disabled = false;
+                        spinner.classList.add('hidden');
 
-        // ============================================================
-        // DELETE PLANTING
-        // ============================================================
-        function deletePlanting(id) {
-            Swal.fire({
-                title: 'Hapus Kegiatan?',
-                text: 'Data penanaman yang dihapus tidak dapat dikembalikan!',
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#ef4444',
-                cancelButtonColor: '#6b7280',
-                confirmButtonText: 'Ya, Hapus!',
-                cancelButtonText: 'Batal'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    const formData = new FormData();
-                    formData.append('id', id);
-
-                    fetch('../controllers/adminController.php?action=delete_planting', {
-                        method: 'POST',
-                        body: formData
+                        if (data.success) {
+                            Swal.fire({
+                                title: 'Sukses!',
+                                text: data.message,
+                                icon: 'success',
+                                confirmButtonColor: '#059669',
+                                confirmButtonText: 'OK'
+                            }).then(() => {
+                                window.location.href = 'planted.php';
+                            });
+                        } else {
+                            Swal.fire('Error', data.message, 'error');
+                        }
                     })
-                        .then(res => res.json())
-                        .then(data => {
-                            if (data.success) {
-                                Swal.fire({
-                                    title: 'Terhapus!',
-                                    text: data.message,
-                                    icon: 'success',
-                                    confirmButtonColor: '#059669'
-                                }).then(() => {
-                                    window.location.reload();
-                                });
-                            } else {
-                                Swal.fire('Error', data.message, 'error');
-                            }
+                    .catch(err => {
+                        submitBtn.disabled = false;
+                        spinner.classList.add('hidden');
+                        Swal.fire('Error', 'Terjadi kesalahan koneksi', 'error');
+                    });
+            });
+
+            // ============================================================
+            // DELETE PLANTING
+            // ============================================================
+            function deletePlanting(id) {
+                Swal.fire({
+                    title: 'Hapus Kegiatan?',
+                    text: 'Data penanaman yang dihapus tidak dapat dikembalikan!',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#ef4444',
+                    cancelButtonColor: '#6b7280',
+                    confirmButtonText: 'Ya, Hapus!',
+                    cancelButtonText: 'Batal'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        const formData = new FormData();
+                        formData.append('id', id);
+
+                        fetch('../controllers/adminController.php?action=delete_planting', {
+                            method: 'POST',
+                            body: formData
                         })
-                        .catch(err => {
-                            Swal.fire('Error', 'Terjadi kesalahan koneksi', 'error');
-                        });
+                            .then(res => res.json())
+                            .then(data => {
+                                if (data.success) {
+                                    Swal.fire({
+                                        title: 'Terhapus!',
+                                        text: data.message,
+                                        icon: 'success',
+                                        confirmButtonColor: '#059669'
+                                    }).then(() => {
+                                        window.location.reload();
+                                    });
+                                } else {
+                                    Swal.fire('Error', data.message, 'error');
+                                }
+                            })
+                            .catch(err => {
+                                Swal.fire('Error', 'Terjadi kesalahan koneksi', 'error');
+                            });
+                    }
+                });
+            }
+
+            // ============================================================
+            // CLIENT-SIDE SEARCH & FILTER
+            // ============================================================
+            function applyClientFilters() {
+                const search = (document.getElementById('searchInput')?.value || '').toLowerCase();
+                const campaign = document.getElementById('campaignFilter')?.value || 'all';
+                const status = document.getElementById('statusFilter')?.value || 'all';
+                const cards = document.querySelectorAll('.planting-card');
+
+                cards.forEach(card => {
+                    const matchSearch = !search || (card.dataset.search || '').includes(search);
+                    const matchCampaign = campaign === 'all' || card.dataset.campaign === campaign;
+                    const matchStatus = status === 'all' || card.dataset.status === status;
+                    card.style.display = (matchSearch && matchCampaign && matchStatus) ? '' : 'none';
+                });
+            }
+
+            document.getElementById('searchInput')?.addEventListener('input', applyClientFilters);
+            document.getElementById('campaignFilter')?.addEventListener('change', applyClientFilters);
+            document.getElementById('statusFilter')?.addEventListener('change', applyClientFilters);
+
+            function resetFilters() {
+                const searchEl = document.getElementById('searchInput');
+                const campEl = document.getElementById('campaignFilter');
+                const statEl = document.getElementById('statusFilter');
+                if (searchEl) searchEl.value = '';
+                if (campEl) campEl.value = 'all';
+                if (statEl) statEl.value = 'all';
+                applyClientFilters();
+            }
+
+            // ============================================================
+            // IMAGE PREVIEW
+            // ============================================================
+            document.getElementById('imageInput')?.addEventListener('change', function () {
+                const file = this.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function (e) {
+                        const preview = document.getElementById('imagePreview');
+                        const placeholder = document.getElementById('uploadPlaceholder');
+                        preview.src = e.target.result;
+                        preview.classList.remove('hidden');
+                        placeholder.classList.add('hidden');
+                    };
+                    reader.readAsDataURL(file);
                 }
             });
-        }
-
-        // ============================================================
-        // CLIENT-SIDE SEARCH & FILTER
-        // ============================================================
-        function applyClientFilters() {
-            const search = (document.getElementById('searchInput')?.value || '').toLowerCase();
-            const campaign = document.getElementById('campaignFilter')?.value || 'all';
-            const status = document.getElementById('statusFilter')?.value || 'all';
-            const cards = document.querySelectorAll('.planting-card');
-
-            cards.forEach(card => {
-                const matchSearch = !search || (card.dataset.search || '').includes(search);
-                const matchCampaign = campaign === 'all' || card.dataset.campaign === campaign;
-                const matchStatus = status === 'all' || card.dataset.status === status;
-                card.style.display = (matchSearch && matchCampaign && matchStatus) ? '' : 'none';
-            });
-        }
-
-        document.getElementById('searchInput')?.addEventListener('input', applyClientFilters);
-        document.getElementById('campaignFilter')?.addEventListener('change', applyClientFilters);
-        document.getElementById('statusFilter')?.addEventListener('change', applyClientFilters);
-
-        function resetFilters() {
-            const searchEl = document.getElementById('searchInput');
-            const campEl = document.getElementById('campaignFilter');
-            const statEl = document.getElementById('statusFilter');
-            if (searchEl) searchEl.value = '';
-            if (campEl) campEl.value = 'all';
-            if (statEl) statEl.value = 'all';
-            applyClientFilters();
-        }
-
-        // ============================================================
-        // IMAGE PREVIEW
-        // ============================================================
-        document.getElementById('imageInput')?.addEventListener('change', function () {
-            const file = this.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function (e) {
-                    const preview = document.getElementById('imagePreview');
-                    const placeholder = document.getElementById('uploadPlaceholder');
-                    preview.src = e.target.result;
-                    preview.classList.remove('hidden');
-                    placeholder.classList.add('hidden');
-                };
-                reader.readAsDataURL(file);
-            }
-        });
+        }); // end DOMContentLoaded
     </script>
 </body>
 

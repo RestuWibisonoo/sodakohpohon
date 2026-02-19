@@ -150,16 +150,33 @@ $current_page = 'campaign';
         }
 
         .progress-bar {
-            height: 8px;
+            height: 10px;
             border-radius: 100px;
             background-color: #e5e7eb;
+            position: relative;
             overflow: hidden;
         }
 
-        .progress-fill {
+        .progress-fill-donated {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            background: linear-gradient(90deg, #f59e0b 0%, #eab308 100%);
+            border-radius: 100px;
+            transition: width 1s ease;
+            z-index: 1;
+        }
+
+        .progress-fill-planted {
+            position: absolute;
+            top: 0;
+            left: 0;
             height: 100%;
             background: linear-gradient(90deg, #10b981 0%, #059669 100%);
             border-radius: 100px;
+            transition: width 1s ease;
+            z-index: 2;
         }
     </style>
 </head>
@@ -295,24 +312,23 @@ $current_page = 'campaign';
                                     class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-primary-600 focus:ring-2 focus:ring-primary-100 outline-none transition">
                             </div>
 
-                            <?php if ($action == 'edit'): ?>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-2">
                                     Status
                                 </label>
                                 <select name="status"
                                     class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-primary-600 focus:ring-2 focus:ring-primary-100 outline-none transition">
-                                    <option value="active" <?php echo ($edit_campaign['status']=='active' ) ? 'selected'
-                                        : '' ; ?>>Aktif</option>
-                                    <option value="pending" <?php echo ($edit_campaign['status']=='pending' )
-                                        ? 'selected' : '' ; ?>>Menunggu</option>
-                                    <option value="completed" <?php echo ($edit_campaign['status']=='completed' )
-                                        ? 'selected' : '' ; ?>>Selesai</option>
-                                    <option value="cancelled" <?php echo ($edit_campaign['status']=='cancelled' )
-                                        ? 'selected' : '' ; ?>>Dibatalkan</option>
+                                    <?php $current_status = $edit_campaign ? $edit_campaign['status'] : 'active'; ?>
+                                    <option value="active" <?php echo $current_status=='active' ? 'selected' : '' ; ?>
+                                        >Aktif</option>
+                                    <option value="pending" <?php echo $current_status=='pending' ? 'selected' : '' ; ?>
+                                        >Menunggu</option>
+                                    <option value="completed" <?php echo $current_status=='completed' ? 'selected' : ''
+                                        ; ?>>Selesai</option>
+                                    <option value="cancelled" <?php echo $current_status=='cancelled' ? 'selected' : ''
+                                        ; ?>>Dibatalkan</option>
                                 </select>
                             </div>
-                            <?php endif; ?>
                         </div>
 
                         <div>
@@ -455,6 +471,7 @@ $current_page = 'campaign';
 
                         <?php foreach ($campaigns as $campaign):
         $progress = $campaign['target_trees'] > 0 ? ($campaign['current_trees'] / $campaign['target_trees']) * 100 : 0;
+        $planted_pct = $campaign['target_trees'] > 0 ? ($campaign['planted_trees'] / $campaign['target_trees']) * 100 : 0;
         $status_class = match($campaign['status']) {
             'active' => 'status-active',
             'pending' => 'status-pending',
@@ -526,17 +543,28 @@ $current_page = 'campaign';
                                     <div class="flex justify-between text-xs mb-1">
                                         <span class="text-gray-600">Progress:</span>
                                         <span class="font-semibold text-primary-700">
-                                            <?php echo round($progress); ?>%
+                                            <?php echo round(min($progress, 100)); ?>%
                                         </span>
                                     </div>
                                     <div class="progress-bar">
-                                        <div class="progress-fill" style="width: <?php echo min($progress, 100); ?>%">
-                                        </div>
+                                        <div class="progress-fill-donated"
+                                            style="width: <?php echo min($progress, 100); ?>%"></div>
+                                        <div class="progress-fill-planted"
+                                            style="width: <?php echo min($planted_pct, 100); ?>%"></div>
                                     </div>
                                     <div class="flex justify-between text-xs mt-1">
-                                        <span class="text-gray-500">
-                                            <?php echo number_format($campaign['current_trees']); ?> pohon
-                                        </span>
+                                        <div class="flex items-center gap-2">
+                                            <span class="text-gray-500 flex items-center">
+                                                <span
+                                                    class="inline-block w-2 h-2 rounded-full bg-yellow-400 mr-1"></span>
+                                                <?php echo number_format($campaign['current_trees']); ?>
+                                            </span>
+                                            <span class="text-gray-500 flex items-center">
+                                                <span
+                                                    class="inline-block w-2 h-2 rounded-full bg-emerald-500 mr-1"></span>
+                                                <?php echo number_format($campaign['planted_trees']); ?>
+                                            </span>
+                                        </div>
                                         <span class="text-gray-500">Target:
                                             <?php echo number_format($campaign['target_trees']); ?>
                                         </span>
