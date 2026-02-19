@@ -314,6 +314,18 @@ $current_page = 'campaign';
 
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-2">
+                                    <i class="fas fa-map-marked-alt text-primary-600 mr-1"></i>
+                                    Link Google Maps
+                                </label>
+                                <input type="url" name="map_url"
+                                    placeholder="https://maps.google.com/?q=-6.8945,110.6364"
+                                    value="<?php echo $edit_campaign ? htmlspecialchars($edit_campaign['map_url'] ?? '') : ''; ?>"
+                                    class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-primary-600 focus:ring-2 focus:ring-primary-100 outline-none transition">
+                                <p class="text-xs text-gray-400 mt-1">Masukkan URL Google Maps lokasi campaign</p>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">
                                     Status
                                 </label>
                                 <select name="status"

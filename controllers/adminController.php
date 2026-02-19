@@ -100,32 +100,37 @@ function storeCampaign($campaign)
         jsonResponse(false, 'Validasi gagal', ['errors' => $errors]);
     }
 
-    // Handle upload gambar
-    $image_path = '';
-    if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
-        $image_path = $campaign->uploadImage($_FILES['image']);
-    }
+    try {
+        // Handle upload gambar
+        $image_path = '';
+        if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
+            $image_path = $campaign->uploadImage($_FILES['image']);
+        }
 
-    $data = $_POST;
-    if ($image_path) {
-        $data['image'] = $image_path;
-    }
+        $data = $_POST;
+        if ($image_path) {
+            $data['image'] = $image_path;
+        }
 
-    $campaign_id = $campaign->create($data);
+        $campaign_id = $campaign->create($data);
 
-    if ($campaign_id) {
-        // Simpan benefits jika ada
-        if (isset($_POST['benefits']) && is_array($_POST['benefits'])) {
-            foreach ($_POST['benefits'] as $benefit) {
-                if (!empty($benefit)) {
-                    $campaign->addBenefit($campaign_id, $benefit);
+        if ($campaign_id) {
+            // Simpan benefits jika ada
+            if (isset($_POST['benefits']) && is_array($_POST['benefits'])) {
+                foreach ($_POST['benefits'] as $benefit) {
+                    if (!empty($benefit)) {
+                        $campaign->addBenefit($campaign_id, $benefit);
+                    }
                 }
             }
+            jsonResponse(true, 'Campaign berhasil dibuat', ['campaign_id' => $campaign_id, 'redirect' => 'campaign.php']);
         }
-        jsonResponse(true, 'Campaign berhasil dibuat', ['campaign_id' => $campaign_id, 'redirect' => 'campaign.php']);
+        else {
+            jsonResponse(false, 'Gagal membuat campaign');
+        }
     }
-    else {
-        jsonResponse(false, 'Gagal membuat campaign');
+    catch (Exception $e) {
+        jsonResponse(false, 'Gagal menyimpan campaign: ' . $e->getMessage());
     }
 }
 
@@ -146,22 +151,45 @@ function updateCampaign($campaign)
     }
 
     // Handle upload gambar
+    $image_path = null;
     if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
         $image_path = $campaign->uploadImage($_FILES['image']);
-        if ($image_path) {
-            $_POST['image'] = $image_path;
+    }
+
+    // Only pass valid DB columns to update
+    $allowed_fields = ['title', 'description', 'long_description', 'location', 'tree_type',
+        'price_per_tree', 'target_trees', 'deadline', 'partner', 'map_url', 'status', 'category'];
+    $data = [];
+    foreach ($allowed_fields as $field) {
+        if (isset($_POST[$field])) {
+            $data[$field] = $_POST[$field];
         }
     }
 
-    $result = $campaign->update($id, $_POST);
+    if ($image_path) {
+        $data['image'] = $image_path;
+    }
+
+    $result = $campaign->update($id, $data);
 
     if ($result) {
+        // Update benefits jika ada
+        if (isset($_POST['benefits']) && is_array($_POST['benefits'])) {
+            $conn = getDB();
+            $conn->query("DELETE FROM campaign_benefits WHERE campaign_id = {$id}");
+            foreach ($_POST['benefits'] as $benefit) {
+                if (!empty($benefit)) {
+                    $campaign->addBenefit($id, $benefit);
+                }
+            }
+        }
         jsonResponse(true, 'Campaign berhasil diperbarui', ['redirect' => 'campaign.php']);
     }
     else {
         jsonResponse(false, 'Gagal memperbarui campaign');
     }
 }
+   
 
 function deleteCampaign($campaign)
 {
@@ -423,6 +451,10 @@ function getChartData($donation)
 {
     $year = isset($_GET['year']) ? $_GET['year'] : date('Y');
     $monthly_donations = $donation->getMonthlyDonations($year);
+
+    jsonResponse(true, 'OK', ['data' => ['monthly_donations' => $monthly_donations]]);
+}
+?>  $monthly_donations = $donation->getMonthlyDonations($year);
 
     jsonResponse(true, 'OK', ['data' => ['monthly_donations' => $monthly_donations]]);
 }

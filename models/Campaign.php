@@ -147,17 +147,18 @@ class Campaign
         $image = isset($data['image']) ? $this->conn->real_escape_string($data['image']) : '';
         $status = isset($data['status']) ? $this->conn->real_escape_string($data['status']) : 'active';
         $partner = isset($data['partner']) ? $this->conn->real_escape_string($data['partner']) : '';
+        $map_url = isset($data['map_url']) ? $this->conn->real_escape_string($data['map_url']) : '';
         $deadline = $this->conn->real_escape_string($data['deadline']);
         $created_at = date('Y-m-d H:i:s');
 
         $sql = "INSERT INTO campaigns (
                     title, description, long_description, location, tree_type, 
                     price_per_tree, target_trees, current_trees, planted_trees, 
-                    image, status, partner, deadline, created_at
+                    image, map_url, status, partner, deadline, created_at
                 ) VALUES (
                     '{$title}', '{$description}', '{$long_description}', '{$location}', '{$tree_type}',
                     {$price_per_tree}, {$target_trees}, {$current_trees}, {$planted_trees},
-                    '{$image}', '{$status}', '{$partner}', '{$deadline}', '{$created_at}'
+                    '{$image}', '{$map_url}', '{$status}', '{$partner}', '{$deadline}', '{$created_at}'
                 )";
 
         if ($this->conn->query($sql)) {
