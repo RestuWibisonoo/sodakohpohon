@@ -218,8 +218,9 @@ $campaigns = getCampaignsForHome(6); // Ambil 6 campaign terbaru untuk home page
     <nav class="fixed top-0 left-0 right-0 z-50 glass-effect border-b border-gray-200/50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-20">
+                
                 <!-- Logo -->
-                <div class="flex items-center space-x-3">
+                <div class="flex items-center space-x-3 flex-shrink-0">
                     <div class="relative">
                         <div class="absolute inset-0 bg-primary-600 rounded-xl blur-sm opacity-60"></div>
                         <div class="relative bg-gradient-to-br from-primary-600 to-primary-700 rounded-xl p-2.5">
@@ -236,27 +237,67 @@ $campaigns = getCampaignsForHome(6); // Ambil 6 campaign terbaru untuk home page
                 </div>
 
                 <!-- Desktop Menu -->
-                <div class="hidden md:flex items-center space-x-8">
-                    <a href="#" class="text-primary-700 font-semibold border-b-2 border-primary-600 pb-1 px-1">Beranda</a>
-                    <a href="#campaigns" class="text-gray-600 hover:text-primary-600 font-medium transition px-1">Campaign</a>
-                    <a href="#how-it-works" class="text-gray-600 hover:text-primary-600 font-medium transition px-1">Cara Kerja</a>
-                    <a href="laporan.php" class="text-gray-600 hover:text-primary-600 font-medium transition px-1">Laporan</a>
-                    <a href="#about" class="text-gray-600 hover:text-primary-600 font-medium transition px-1">Tentang</a>
+                <div class="hidden md:flex items-center justify-center gap-1 flex-1">
+                    <a href="#" class="text-primary-700 font-semibold border-b-2 border-primary-600 py-2 px-3 text-sm">
+                        Beranda
+                    </a>
+                    <a href="campaign.php" class="text-gray-600 hover:text-primary-600 font-medium transition py-2 px-3 text-sm">
+                        Campaign
+                    </a>
+                    
+                    <!-- Programs Dropdown -->
+                    <div class="relative group" id="programsDropdown">
+                        <button id="programsBtn" class="text-gray-600 hover:text-primary-600 font-medium transition py-2 px-3 text-sm flex items-center cursor-pointer">
+                            Program
+                            <i class="fas fa-chevron-down ml-1.5 text-xs transition duration-300" id="programsIcon"></i>
+                        </button>
+                        <div id="programsMenu" class="absolute left-0 mt-1 w-64 bg-white rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition duration-300 py-2 z-50 border border-gray-100">
+                            <a href="#programs" class="block px-4 py-3 hover:bg-primary-50 text-gray-700 hover:text-primary-700 transition">
+                                <div class="font-semibold flex items-center text-sm">
+                                    <i class="fas fa-building mr-3 text-primary-600 w-5 text-center"></i>Corporation
+                                </div>
+                                <p class="text-xs text-gray-500 mt-1 ml-8">CSR dengan penanaman pohon</p>
+                            </a>
+                            <a href="#programs" class="block px-4 py-3 hover:bg-primary-50 text-gray-700 hover:text-primary-700 transition">
+                                <div class="font-semibold flex items-center text-sm">
+                                    <i class="fas fa-handshake mr-3 text-primary-600 w-5 text-center"></i>Collaboration
+                                </div>
+                                <p class="text-xs text-gray-500 mt-1 ml-8">Bundling produk/jasa dengan donasi</p>
+                            </a>
+                            <a href="#programs" class="block px-4 py-3 hover:bg-primary-50 text-gray-700 hover:text-primary-700 transition">
+                                <div class="font-semibold flex items-center text-sm">
+                                    <i class="fas fa-leaf mr-3 text-primary-600 w-5 text-center"></i>Sustainability
+                                </div>
+                                <p class="text-xs text-gray-500 mt-1 ml-8">Konsultasi & implementasi proyek</p>
+                            </a>
+                        </div>
+                    </div>
+
+                    <a href="#how-it-works" class="text-gray-600 hover:text-primary-600 font-medium transition py-2 px-3 text-sm">
+                        Cara Kerja
+                    </a>
+                    <a href="laporan.php" class="text-gray-600 hover:text-primary-600 font-medium transition py-2 px-3 text-sm">
+                        Laporan
+                    </a>
+                    <a href="#about" class="text-gray-600 hover:text-primary-600 font-medium transition py-2 px-3 text-sm">
+                        Tentang
+                    </a>
                 </div>
 
                 <!-- Action Buttons -->
-                <div class="flex items-center space-x-4">
+                <div class="flex items-center gap-3 flex-shrink-0">
                     <a href="cart.php" class="relative p-2 text-gray-600 hover:text-primary-600 transition">
                         <i class="fas fa-shopping-cart text-xl"></i>
                         <span class="absolute -top-1 -right-1 bg-primary-600 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">0</span>
                     </a>
-                    <a href="admin/login.php" class="hidden md:inline-flex items-center px-4 py-2 border-2 border-primary-600 text-primary-700 font-semibold rounded-xl hover:bg-primary-50 transition">
+                    <a href="admin/login.php" class="hidden md:inline-flex items-center px-4 py-2 border-2 border-primary-600 text-primary-700 font-semibold rounded-lg hover:bg-primary-50 transition text-sm">
                         <i class="fas fa-user-shield mr-2"></i>Admin
                     </a>
-                    <a href="#campaigns" class="inline-flex items-center px-5 py-2.5 bg-gradient-to-r from-primary-600 to-primary-700 text-white font-semibold rounded-xl hover:from-primary-700 hover:to-primary-800 transition shadow-lg shadow-primary-600/25">
+                    <a href="#campaigns" class="inline-flex items-center px-6 py-2.5 bg-gradient-to-r from-primary-600 to-primary-700 text-white font-semibold rounded-lg hover:from-primary-700 hover:to-primary-800 transition shadow-lg shadow-primary-600/25 text-sm whitespace-nowrap">
                         <i class="fas fa-hand-holding-heart mr-2"></i>Mulai Sedekah
                     </a>
                 </div>
+
             </div>
         </div>
     </nav>
@@ -387,6 +428,151 @@ $campaigns = getCampaignsForHome(6); // Ambil 6 campaign terbaru untuk home page
                         <div class="absolute -bottom-6 -left-6 w-32 h-32 bg-earth-200 rounded-full blur-2xl opacity-60"></div>
                     </div>
                 </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Programs Section -->
+    <section id="programs" class="py-20 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <!-- Section Header -->
+            <div class="text-center max-w-3xl mx-auto mb-16" data-aos="fade-up">
+                <span class="inline-block px-4 py-2 bg-primary-100 rounded-full text-primary-700 font-semibold text-sm mb-4">
+                    <i class="fas fa-star mr-2"></i>Solusi Kami
+                </span>
+                <h2 class="text-4xl font-bold text-gray-900 mb-4">
+                    Program Penanaman Pohon untuk Semua
+                </h2>
+                <p class="text-xl text-gray-600">
+                    Kami menyediakan berbagai program yang dapat disesuaikan dengan kebutuhan Anda:
+                </p>
+            </div>
+
+            <!-- Programs Grid -->
+            <div class="grid md:grid-cols-3 gap-8 mb-12">
+                <!-- Corporatree Card -->
+                <div class="group relative bg-white rounded-3xl overflow-hidden border-2 border-gray-100 hover:border-primary-300 transition duration-300" data-aos="fade-up" data-aos-delay="0">
+                    <div class="absolute inset-0 bg-gradient-to-br from-blue-50 to-primary-50 opacity-0 group-hover:opacity-100 transition duration-300"></div>
+                    <div class="relative p-8">
+                        <!-- Icon -->
+                        <div class="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition duration-300">
+                            <i class="fas fa-building text-blue-600 text-3xl"></i>
+                        </div>
+                        <!-- Title & Subtitle -->
+                        <h3 class="text-2xl font-bold text-gray-900 mb-2">Corporation</h3>
+                        <p class="text-primary-600 font-semibold mb-4 text-sm">Program CSR Perusahaan</p>
+                        <!-- Description -->
+                        <p class="text-gray-600 text-sm leading-relaxed mb-6">
+                            Program CSR dengan penanaman pohon yang dapat disesuaikan dengan target dan misi perusahaan Anda.
+                        </p>
+                        <!-- Features -->
+                        <ul class="space-y-3 mb-6">
+                            <li class="flex items-start text-sm text-gray-700">
+                                <i class="fas fa-check text-primary-600 mr-3 mt-0.5 flex-shrink-0"></i>
+                                <span>Target penanaman pohon sesuai kebutuhan</span>
+                            </li>
+                            <li class="flex items-start text-sm text-gray-700">
+                                <i class="fas fa-check text-primary-600 mr-3 mt-0.5 flex-shrink-0"></i>
+                                <span>Dokumentasi & laporan dampak</span>
+                            </li>
+                            <li class="flex items-start text-sm text-gray-700">
+                                <i class="fas fa-check text-primary-600 mr-3 mt-0.5 flex-shrink-0"></i>
+                                <span>Kustomisasi lokasi penanaman</span>
+                            </li>
+                        </ul>
+                        <!-- CTA Button -->
+                        <a href="#" class="inline-flex items-center justify-center w-full px-6 py-3 bg-gradient-to-r from-primary-600 to-primary-700 text-white font-semibold rounded-xl hover:bg-primary-800 transition group/btn">
+                            Pelajari Lebih Lanjut
+                            <i class="fas fa-arrow-right ml-2 group-hover/btn:translate-x-1 transition"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Collaboratree Card -->
+                <div class="group relative bg-white rounded-3xl overflow-hidden border-2 border-gray-100 hover:border-primary-300 transition duration-300" data-aos="fade-up" data-aos-delay="100">
+                    <div class="absolute inset-0 bg-gradient-to-br from-purple-50 to-primary-50 opacity-0 group-hover:opacity-100 transition duration-300"></div>
+                    <div class="relative p-8">
+                        <!-- Icon -->
+                        <div class="w-16 h-16 bg-purple-100 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition duration-300">
+                            <i class="fas fa-handshake text-purple-600 text-3xl"></i>
+                        </div>
+                        <!-- Title & Subtitle -->
+                        <h3 class="text-2xl font-bold text-gray-900 mb-2">Collaboration</h3>
+                        <p class="text-primary-600 font-semibold mb-4 text-sm">Bundling Produk/Jasa</p>
+                        <!-- Description -->
+                        <p class="text-gray-600 text-sm leading-relaxed mb-6">
+                            Kolaborasikan brand Anda dengan program donasi pohon untuk membangun citra yang peduli dan berkelanjutan.
+                        </p>
+                        <!-- Features -->
+                        <ul class="space-y-3 mb-6">
+                            <li class="flex items-start text-sm text-gray-700">
+                                <i class="fas fa-check text-primary-600 mr-3 mt-0.5 flex-shrink-0"></i>
+                                <span>Integrasi dengan produk/layanan Anda</span>
+                            </li>
+                            <li class="flex items-start text-sm text-gray-700">
+                                <i class="fas fa-check text-primary-600 mr-3 mt-0.5 flex-shrink-0"></i>
+                                <span>Meningkatkan brand awareness</span>
+                            </li>
+                            <li class="flex items-start text-sm text-gray-700">
+                                <i class="fas fa-check text-primary-600 mr-3 mt-0.5 flex-shrink-0"></i>
+                                <span>Pelanggan berkontribusi untuk lingkungan</span>
+                            </li>
+                        </ul>
+                        <!-- CTA Button -->
+                        <a href="#" class="inline-flex items-center justify-center w-full px-6 py-3 bg-gradient-to-r from-primary-600 to-primary-700 text-white font-semibold rounded-xl hover:bg-purple-700 transition group/btn">
+                            Pelajari Lebih Lanjut
+                            <i class="fas fa-arrow-right ml-2 group-hover/btn:translate-x-1 transition"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- SustainabiliTree Card -->
+                <div class="group relative bg-white rounded-3xl overflow-hidden border-2 border-gray-100 hover:border-primary-300 transition duration-300" data-aos="fade-up" data-aos-delay="200">
+                    <div class="absolute inset-0 bg-gradient-to-br from-green-50 to-primary-50 opacity-0 group-hover:opacity-100 transition duration-300"></div>
+                    <div class="relative p-8">
+                        <!-- Icon -->
+                        <div class="w-16 h-16 bg-green-100 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition duration-300">
+                            <i class="fas fa-leaf text-green-600 text-3xl"></i>
+                        </div>
+                        <!-- Title & Subtitle -->
+                        <h3 class="text-2xl font-bold text-gray-900 mb-2">SustainabiliTy</h3>
+                        <p class="text-primary-600 font-semibold mb-4 text-sm">Proyek Berkelanjutan</p>
+                        <!-- Description -->
+                        <p class="text-gray-600 text-sm leading-relaxed mb-6">
+                            Konsultasi dan implementasi proyek penanaman pohon skala besar dengan strategi keberlanjutan jangka panjang.
+                        </p>
+                        <!-- Features -->
+                        <ul class="space-y-3 mb-6">
+                            <li class="flex items-start text-sm text-gray-700">
+                                <i class="fas fa-check text-primary-600 mr-3 mt-0.5 flex-shrink-0"></i>
+                                <span>Konsultasi mendalam dengan ahli</span>
+                            </li>
+                            <li class="flex items-start text-sm text-gray-700">
+                                <i class="fas fa-check text-primary-600 mr-3 mt-0.5 flex-shrink-0"></i>
+                                <span>Implementasi di berbagai lokasi</span>
+                            </li>
+                            <li class="flex items-start text-sm text-gray-700">
+                                <i class="fas fa-check text-primary-600 mr-3 mt-0.5 flex-shrink-0"></i>
+                                <span>Monitoring jangka panjang & laporan</span>
+                            </li>
+                        </ul>
+                        <!-- CTA Button -->
+                        <a href="#" class="inline-flex items-center justify-center w-full px-6 py-3 bg-gradient-to-r from-primary-600 to-primary-700 text-white font-semibold rounded-xl hover:bg-green-700 transition group/btn">
+                            Pelajari Lebih Lanjut
+                            <i class="fas fa-arrow-right ml-2 group-hover/btn:translate-x-1 transition"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contact Section -->
+            <div class="bg-gradient-to-r from-primary-600 to-primary-700 rounded-3xl p-12 text-center text-white" data-aos="fade-up">
+                <h3 class="text-3xl font-bold mb-4">Tertarik dengan Salah Satu Program?</h3>
+                <p class="text-white/90 mb-8 text-lg">Hubungi tim kami untuk mendiskusikan program yang paling sesuai untuk Anda</p>
+                <a href="mailto:info@sodakohpohon.com" class="inline-flex items-center px-8 py-4 bg-white text-primary-700 font-bold rounded-2xl hover:bg-gray-100 transition">
+                    <i class="fas fa-envelope mr-3"></i>
+                    Hubungi Kami
+                </a>
             </div>
         </div>
     </section>
@@ -889,6 +1075,49 @@ $campaigns = getCampaignsForHome(6); // Ambil 6 campaign terbaru untuk home page
             } else {
                 nav.classList.remove('bg-white/95', 'backdrop-blur-md', 'shadow-lg');
                 nav.classList.add('glass-effect');
+            }
+        });
+
+        // Programs Dropdown Click Handler
+        const programsBtn = document.getElementById('programsBtn');
+        const programsMenu = document.getElementById('programsMenu');
+        const programsIcon = document.getElementById('programsIcon');
+        const programsDropdown = document.getElementById('programsDropdown');
+        let isDropdownOpen = false;
+
+        programsBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            isDropdownOpen = !isDropdownOpen;
+            
+            if (isDropdownOpen) {
+                programsMenu.classList.remove('opacity-0', 'invisible');
+                programsMenu.classList.add('opacity-100', 'visible');
+                programsIcon.classList.add('rotate-180');
+            } else {
+                programsMenu.classList.add('opacity-0', 'invisible');
+                programsMenu.classList.remove('opacity-100', 'visible');
+                programsIcon.classList.remove('rotate-180');
+            }
+        });
+
+        // Close dropdown when clicking on menu items
+        const programsLinks = programsMenu.querySelectorAll('a');
+        programsLinks.forEach(link => {
+            link.addEventListener('click', function() {
+                isDropdownOpen = false;
+                programsMenu.classList.add('opacity-0', 'invisible');
+                programsMenu.classList.remove('opacity-100', 'visible');
+                programsIcon.classList.remove('rotate-180');
+            });
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!programsDropdown.contains(e.target)) {
+                isDropdownOpen = false;
+                programsMenu.classList.add('opacity-0', 'invisible');
+                programsMenu.classList.remove('opacity-100', 'visible');
+                programsIcon.classList.remove('rotate-180');
             }
         });
     </script>
