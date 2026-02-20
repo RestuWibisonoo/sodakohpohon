@@ -173,20 +173,35 @@ class Campaign
      */
     public function update($id, $data)
     {
-        $sets = [];
+        if (empty($data)) {
+            return false;
+        }
 
+        $sets = [];
         foreach ($data as $key => $value) {
             $key_esc = $this->conn->real_escape_string($key);
             $value_esc = $this->conn->real_escape_string($value);
-            $sets[] = "{$key_esc} = '{$value_esc}'";
+            $sets[] = "`{$key_esc}` = '{$value_esc}'";
         }
 
+        if (empty($sets)) {
+            return false;
+        }
+
+        // Automatically update 'updated_at' to current timestamp
+        $sets[] = "`updated_at` = NOW()";
+
         $set_string = implode(", ", $sets);
-        $id_esc = $this->conn->real_escape_string($id);
+        $id_int = (int)$id;
 
-        $sql = "UPDATE campaigns SET {$set_string} WHERE id = '{$id_esc}'";
+        $sql = "UPDATE campaigns SET {$set_string} WHERE id = {$id_int}";
 
-        return $this->conn->query($sql);
+        if (!$this->conn->query($sql)) {
+            error_log("Campaign Update Error: " . $this->conn->error . " SQL: " . $sql);
+            return false;
+        }
+        
+        return true;
     }
 
     /**

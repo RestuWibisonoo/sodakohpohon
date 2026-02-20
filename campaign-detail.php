@@ -190,7 +190,9 @@ $remaining_trees = $campaign['target_trees'] - $campaign['current_trees'];
         <div class="relative h-[400px] lg:h-[500px] overflow-hidden">
             <img src="<?php echo $campaign['image']; ?>" 
                  alt="<?php echo $campaign['title']; ?>"
-                 class="absolute inset-0 w-full h-full object-cover">
+                 class="absolute inset-0 w-full h-full object-cover"
+                 loading="eager"
+                 crossorigin="anonymous">
             <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
             
             <!-- Breadcrumb -->
@@ -326,7 +328,9 @@ $remaining_trees = $campaign['target_trees'] - $campaign['current_trees'];
                             <div class="gallery-item rounded-xl overflow-hidden aspect-square">
                                 <img src="<?php echo $image; ?>" 
                                      alt="Dokumentasi <?php echo $index + 1; ?>"
-                                     class="w-full h-full object-cover">
+                                     class="w-full h-full object-cover"
+                                     loading="lazy"
+                                     crossorigin="anonymous">
                             </div>
                             <?php endforeach; ?>
                         </div>

@@ -2,6 +2,11 @@
 // campaign.php - Halaman Daftar Campaign Publik
 session_start();
 
+// Prevent caching untuk memastikan data always fresh
+header("Cache-Control: no-cache, no-store, must-revalidate, max-age=0");
+header("Pragma: no-cache");
+header("Expires: 0");
+
 // ================= KONEKSI DATABASE =================
 require_once 'config/koneksi.php';
 require_once 'helpers/campaign.php';
@@ -253,7 +258,9 @@ $categories = getCampaignCategories();
                     <div class="relative h-56 overflow-hidden">
                         <img src="<?php echo $campaign['image']; ?>" 
                              alt="<?php echo $campaign['title']; ?>"
-                             class="campaign-image w-full h-full object-cover">
+                             class="campaign-image w-full h-full object-cover"
+                             loading="lazy"
+                             crossorigin="anonymous">
                         
                         <!-- Overlay Gradient -->
                         <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>

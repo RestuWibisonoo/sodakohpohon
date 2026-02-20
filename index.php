@@ -2,6 +2,11 @@
 // index.php - Front Controller
 session_start();
 
+// Prevent caching untuk memastikan data always fresh
+header("Cache-Control: no-cache, no-store, must-revalidate, max-age=0");
+header("Pragma: no-cache");
+header("Expires: 0");
+
 // ================= KONEKSI DATABASE =================
 require_once 'config/koneksi.php';
 require_once 'helpers/campaign.php';
@@ -637,7 +642,8 @@ $campaigns = getCampaignsForHome(6); // Ambil 6 campaign terbaru untuk home page
                         <img src="<?php echo htmlspecialchars($campaign['image']); ?>" 
                              alt="<?php echo htmlspecialchars($campaign['title']); ?>"
                              class="campaign-image w-full h-full object-cover"
-                             loading="lazy">
+                             loading="lazy"
+                             crossorigin="anonymous">
                         
                         <!-- Overlay Gradient -->
                         <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>

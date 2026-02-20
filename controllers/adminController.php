@@ -2,12 +2,31 @@
 // controllers/adminController.php
 // Controller untuk menangani semua AJAX request admin
 
+// Start output buffering untuk mencegah output accidental
+ob_start();
+
+// Set error handling strict
+error_reporting(E_ALL);
+ini_set('display_errors', '0'); // Jangan display error ke output, log saja
+ini_set('log_errors', '1');
+
+// Custom error handler untuk mencegah HTML output
+set_error_handler(function($errno, $errstr, $errfile, $errline) {
+    global $json_errors;
+    if (!isset($json_errors)) {
+        $json_errors = [];
+    }
+    $json_errors[] = "[$errno] $errstr (File: {$errfile}:{$errline})";
+    return true; // Suppress default PHP error handler
+});
+
 require_once dirname(__DIR__) . '/config/koneksi.php';
 require_once dirname(__DIR__) . '/models/Campaign.php';
 require_once dirname(__DIR__) . '/models/Donation.php';
 
 // Cek autentikasi admin
 if (!isAdminLoggedIn()) {
+    ob_clean(); // Clear any buffered output
     header('Content-Type: application/json');
     echo json_encode(['success' => false, 'message' => 'Unauthorized']);
     exit;
@@ -76,12 +95,25 @@ switch ($action) {
 // ============================================================
 function jsonResponse($success, $message, $data = [])
 {
-    header('Content-Type: application/json');
+    // Clear any buffered output
+    ob_clean();
+    
+    // Set JSON header
+    header('Content-Type: application/json; charset=utf-8');
+    
+    // Include any captured errors
+    global $json_errors;
     $response = ['success' => $success, 'message' => $message];
+    
+    if (!empty($json_errors)) {
+        $response['debug_errors'] = $json_errors; // For debugging, remove in production
+    }
+    
     if (!empty($data)) {
         $response = array_merge($response, $data);
     }
-    echo json_encode($response);
+    
+    echo json_encode($response, JSON_UNESCAPED_SLASHES);
     exit;
 }
 
@@ -136,43 +168,57 @@ function storeCampaign($campaign)
 
 function updateCampaign($campaign)
 {
-    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-        jsonResponse(false, 'Method tidak diizinkan');
-    }
-
-    $id = isset($_POST['id']) ? (int)$_POST['id'] : 0;
-    if ($id <= 0) {
-        jsonResponse(false, 'ID campaign tidak valid');
-    }
-
-    $errors = validateCampaign($_POST);
-    if (!empty($errors)) {
-        jsonResponse(false, 'Validasi gagal', ['errors' => $errors]);
-    }
-
-    // Handle upload gambar
-    $image_path = null;
-    if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
-        $image_path = $campaign->uploadImage($_FILES['image']);
-    }
-
-    // Only pass valid DB columns to update
-    $allowed_fields = ['title', 'description', 'long_description', 'location', 'tree_type',
-        'price_per_tree', 'target_trees', 'deadline', 'partner', 'map_url', 'status', 'category'];
-    $data = [];
-    foreach ($allowed_fields as $field) {
-        if (isset($_POST[$field])) {
-            $data[$field] = $_POST[$field];
+    try {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            jsonResponse(false, 'Method tidak diizinkan');
         }
-    }
 
-    if ($image_path) {
-        $data['image'] = $image_path;
-    }
+        $id = isset($_POST['id']) ? (int)$_POST['id'] : 0;
+        if ($id <= 0) {
+            jsonResponse(false, 'ID campaign tidak valid');
+        }
 
-    $result = $campaign->update($id, $data);
+        $errors = validateCampaign($_POST);
+        if (!empty($errors)) {
+            jsonResponse(false, 'Validasi gagal', ['errors' => $errors]);
+        }
 
-    if ($result) {
+        // Handle upload gambar
+        $image_path = null;
+        if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
+            $image_path = $campaign->uploadImage($_FILES['image']);
+            if (!$image_path) {
+                jsonResponse(false, 'Gagal upload gambar');
+            }
+        }
+
+        // Only pass valid DB columns to update
+        // Removed: 'map_url', 'category' (tidak ada di tabel campaigns)
+        $allowed_fields = ['title', 'description', 'long_description', 'location', 'tree_type',
+            'price_per_tree', 'target_trees', 'deadline', 'partner', 'status'];
+        $data = [];
+        foreach ($allowed_fields as $field) {
+            if (isset($_POST[$field])) {
+                $data[$field] = $_POST[$field];
+            }
+        }
+
+        if (empty($data)) {
+            jsonResponse(false, 'Tidak ada data yang diubah');
+        }
+
+        if ($image_path) {
+            $data['image'] = $image_path;
+        }
+
+        $result = $campaign->update($id, $data);
+
+        if ($result === false) {
+            // Get database error
+            $db_error = getDB()->error ?: 'Database error';
+            jsonResponse(false, 'Gagal memperbarui campaign: ' . $db_error);
+        }
+
         // Update benefits jika ada
         if (isset($_POST['benefits']) && is_array($_POST['benefits'])) {
             $conn = getDB();
@@ -183,10 +229,10 @@ function updateCampaign($campaign)
                 }
             }
         }
+        
         jsonResponse(true, 'Campaign berhasil diperbarui', ['redirect' => 'campaign.php']);
-    }
-    else {
-        jsonResponse(false, 'Gagal memperbarui campaign');
+    } catch (Exception $e) {
+        jsonResponse(false, 'Error: ' . $e->getMessage());
     }
 }
    
