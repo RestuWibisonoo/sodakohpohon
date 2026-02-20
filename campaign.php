@@ -2,169 +2,20 @@
 // campaign.php - Halaman Daftar Campaign Publik
 session_start();
 
-// Simulasi data campaign
- $campaigns = [
-    [
-        'id' => 1,
-        'title' => 'Restorasi Mangrove Demak',
-        'location' => 'Demak, Jawa Tengah',
-        'tree_type' => 'Mangrove Rhizophora',
-        'price_per_tree' => 10000,
-        'target_trees' => 5000,
-        'current_trees' => 1450,
-        'image' => 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
-        'description' => 'Program penanaman mangrove untuk membangun sabuk hijau yang melindungi garis pantai dari abrasi.',
-        'donors' => 245,
-        'days_left' => 30,
-        'category' => 'Mangrove'
-    ],
-    [
-        'id' => 2,
-        'title' => 'Reboisasi Lereng Merapi',
-        'location' => 'Magelang, Jawa Tengah',
-        'tree_type' => 'Sengon & Mahoni',
-        'price_per_tree' => 12000,
-        'target_trees' => 4000,
-        'current_trees' => 2300,
-        'image' => 'https://images.unsplash.com/photo-1472214103451-9374bd1c798e?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
-        'description' => 'Penanaman sengon dan mahoni di lereng Merapi untuk mencegah erosi dan longsor.',
-        'donors' => 312,
-        'days_left' => 15,
-        'category' => 'Reboisasi'
-    ],
-    [
-        'id' => 3,
-        'title' => 'Penghijauan Hutan Lombok',
-        'location' => 'Lombok, NTB',
-        'tree_type' => 'Mahoni',
-        'price_per_tree' => 15000,
-        'target_trees' => 3000,
-        'current_trees' => 780,
-        'image' => 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
-        'description' => 'Penanaman pohon di kawasan hutan yang terbakar untuk memulihkan ekosistem.',
-        'donors' => 156,
-        'days_left' => 45,
-        'category' => 'Reboisasi'
-    ],
-    [
-        'id' => 4,
-        'title' => 'Hutan Pangan Kalimantan',
-        'location' => 'Kutai, Kaltim',
-        'tree_type' => 'Durian & Petai',
-        'price_per_tree' => 25000,
-        'target_trees' => 2000,
-        'current_trees' => 450,
-        'image' => 'https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
-        'description' => 'Program hutan pangan untuk memberdayakan masyarakat adat dan melestarikan hutan.',
-        'donors' => 89,
-        'days_left' => 60,
-        'category' => 'Hutan Pangan'
-    ],
-    [
-        'id' => 5,
-        'title' => 'Konservasi Hutan Papua',
-        'location' => 'Jayapura, Papua',
-        'tree_type' => 'Merbau',
-        'price_per_tree' => 30000,
-        'target_trees' => 1500,
-        'current_trees' => 320,
-        'image' => 'https://images.unsplash.com/photo-1425913397330-cf8af2ff40a1?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
-        'description' => 'Konservasi hutan tropis Papua untuk melindungi keanekaragaman hayati.',
-        'donors' => 67,
-        'days_left' => 90,
-        'category' => 'Konservasi'
-    ],
-    [
-        'id' => 6,
-        'title' => 'Mangrove Pesisir Jakarta',
-        'location' => 'Jakarta Utara',
-        'tree_type' => 'Mangrove',
-        'price_per_tree' => 10000,
-        'target_trees' => 3500,
-        'current_trees' => 1250,
-        'image' => 'https://images.unsplash.com/photo-1621451498295-af1ea68616ee?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
-        'description' => 'Penanaman mangrove di kawasan pesisir Jakarta Utara untuk perlindungan banjir rob.',
-        'donors' => 198,
-        'days_left' => 25,
-        'category' => 'Mangrove'
-    ],
-    [
-        'id' => 7,
-        'title' => 'Hutan Kota Surabaya',
-        'location' => 'Surabaya, Jawa Timur',
-        'tree_type' => 'Trembesi',
-        'price_per_tree' => 8500,
-        'target_trees' => 2500,
-        'current_trees' => 890,
-        'image' => 'https://images.unsplash.com/photo-1502082553048-f009c37129b9?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
-        'description' => 'Penghijauan kawasan perkotaan Surabaya untuk mengurangi polusi udara.',
-        'donors' => 145,
-        'days_left' => 40,
-        'category' => 'Hutan Kota'
-    ],
-    [
-        'id' => 8,
-        'title' => 'Restorasi Danau Toba',
-        'location' => 'Samosir, Sumatera Utara',
-        'tree_type' => 'Pinus',
-        'price_per_tree' => 18000,
-        'target_trees' => 4000,
-        'current_trees' => 1100,
-        'image' => 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
-        'description' => 'Restorasi kawasan tangkapan air Danau Toba dengan penanaman pohon pinus.',
-        'donors' => 178,
-        'days_left' => 55,
-        'category' => 'Konservasi'
-    ],
-    [
-        'id' => 9,
-        'title' => 'Green School Bali',
-        'location' => 'Badung, Bali',
-        'tree_type' => 'Bambu',
-        'price_per_tree' => 15000,
-        'target_trees' => 2000,
-        'current_trees' => 650,
-        'image' => 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
-        'description' => 'Program penanaman bambu untuk mendukung pendidikan lingkungan di Bali.',
-        'donors' => 92,
-        'days_left' => 35,
-        'category' => 'Hutan Kota'
-    ]
-];
+// ================= KONEKSI DATABASE =================
+require_once 'config/koneksi.php';
+require_once 'helpers/campaign.php';
 
-// Filter by category
- $category_filter = isset($_GET['category']) ? $_GET['category'] : 'all';
- $sort_by = isset($_GET['sort']) ? $_GET['sort'] : 'popular';
+// ================= AMBIL DATA CAMPAIGN DARI DATABASE =================
+// Get filter dan sort parameters
+$category_filter = isset($_GET['category']) ? $_GET['category'] : 'all';
+$sort_by = isset($_GET['sort']) ? $_GET['sort'] : 'popular';
 
-if ($category_filter != 'all') {
-    $campaigns = array_filter($campaigns, function($c) use ($category_filter) {
-        return $c['category'] == $category_filter;
-    });
-}
+// Ambil campaigns dengan filter dan sort
+$campaigns = getCampaigns($category_filter, $sort_by);
 
-// Sort campaigns
-switch ($sort_by) {
-    case 'newest':
-        // Already in order
-        break;
-    case 'deadline':
-        usort($campaigns, function($a, $b) {
-            return $a['days_left'] - $b['days_left'];
-        });
-        break;
-    case 'progress':
-        usort($campaigns, function($a, $b) {
-            $prog_a = ($a['current_trees'] / $a['target_trees']) * 100;
-            $prog_b = ($b['current_trees'] / $b['target_trees']) * 100;
-            return $prog_b - $prog_a;
-        });
-        break;
-    default: // popular
-        usort($campaigns, function($a, $b) {
-            return $b['donors'] - $a['donors'];
-        });
-        break;
-}
+// Ambil semua kategori untuk filter buttons
+$categories = getCampaignCategories();
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -373,33 +224,18 @@ switch ($sort_by) {
                        class="filter-btn px-5 py-2 rounded-full text-sm font-semibold transition whitespace-nowrap <?php echo $category_filter == 'all' ? 'active bg-primary-600 text-white' : 'bg-white text-gray-700 hover:bg-primary-50 hover:text-primary-700 border border-gray-200'; ?>">
                         Semua
                     </a>
-                    <a href="?category=Mangrove&sort=<?php echo $sort_by; ?>" 
-                       class="filter-btn px-5 py-2 rounded-full text-sm font-medium transition whitespace-nowrap <?php echo $category_filter == 'Mangrove' ? 'active bg-primary-600 text-white' : 'bg-white text-gray-700 hover:bg-primary-50 hover:text-primary-700 border border-gray-200'; ?>">
-                        Mangrove
+                    <?php foreach ($categories as $cat): ?>
+                    <a href="?category=<?php echo urlencode($cat); ?>&sort=<?php echo $sort_by; ?>" 
+                       class="filter-btn px-5 py-2 rounded-full text-sm font-medium transition whitespace-nowrap <?php echo $category_filter == $cat ? 'active bg-primary-600 text-white' : 'bg-white text-gray-700 hover:bg-primary-50 hover:text-primary-700 border border-gray-200'; ?>">
+                        <?php echo htmlspecialchars($cat); ?>
                     </a>
-                    <a href="?category=Reboisasi&sort=<?php echo $sort_by; ?>" 
-                       class="filter-btn px-5 py-2 rounded-full text-sm font-medium transition whitespace-nowrap <?php echo $category_filter == 'Reboisasi' ? 'active bg-primary-600 text-white' : 'bg-white text-gray-700 hover:bg-primary-50 hover:text-primary-700 border border-gray-200'; ?>">
-                        Reboisasi
-                    </a>
-                    <a href="?category=Hutan Kota&sort=<?php echo $sort_by; ?>" 
-                       class="filter-btn px-5 py-2 rounded-full text-sm font-medium transition whitespace-nowrap <?php echo $category_filter == 'Hutan Kota' ? 'active bg-primary-600 text-white' : 'bg-white text-gray-700 hover:bg-primary-50 hover:text-primary-700 border border-gray-200'; ?>">
-                        Hutan Kota
-                    </a>
-                    <a href="?category=Hutan Pangan&sort=<?php echo $sort_by; ?>" 
-                       class="filter-btn px-5 py-2 rounded-full text-sm font-medium transition whitespace-nowrap <?php echo $category_filter == 'Hutan Pangan' ? 'active bg-primary-600 text-white' : 'bg-white text-gray-700 hover:bg-primary-50 hover:text-primary-700 border border-gray-200'; ?>">
-                        Hutan Pangan
-                    </a>
-                    <a href="?category=Konservasi&sort=<?php echo $sort_by; ?>" 
-                       class="filter-btn px-5 py-2 rounded-full text-sm font-medium transition whitespace-nowrap <?php echo $category_filter == 'Konservasi' ? 'active bg-primary-600 text-white' : 'bg-white text-gray-700 hover:bg-primary-50 hover:text-primary-700 border border-gray-200'; ?>">
-                        Konservasi
-                    </a>
+                    <?php endforeach; ?>
                 </div>
                 
                 <div class="flex items-center gap-2">
                     <span class="text-sm text-gray-500">Urutkan:</span>
                     <select id="sortSelect" class="bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-600">
                         <option value="popular" <?php echo $sort_by == 'popular' ? 'selected' : ''; ?>>Paling Populer</option>
-                        <option value="newest" <?php echo $sort_by == 'newest' ? 'selected' : ''; ?>>Terbaru</option>
                         <option value="deadline" <?php echo $sort_by == 'deadline' ? 'selected' : ''; ?>>Deadline Terdekat</option>
                         <option value="progress" <?php echo $sort_by == 'progress' ? 'selected' : ''; ?>>Progress Tertinggi</option>
                     </select>

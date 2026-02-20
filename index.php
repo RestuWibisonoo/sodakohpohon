@@ -2,93 +2,19 @@
 // index.php - Front Controller
 session_start();
 
-// Simulasi data statistik
- $total_trees = 15234;
- $total_planted = 8750;
- $total_donors = 3241;
- $total_locations = 23;
+// ================= KONEKSI DATABASE =================
+require_once 'config/koneksi.php';
+require_once 'helpers/campaign.php';
 
-// Simulasi data campaign
- $campaigns = [
-    [
-        'id' => 1,
-        'title' => 'Restorasi Mangrove Demak',
-        'location' => 'Demak, Jawa Tengah',
-        'tree_type' => 'Mangrove Rhizophora',
-        'price_per_tree' => 10000,
-        'target_trees' => 5000,
-        'current_trees' => 1450,
-        'image' => 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
-        'description' => 'Program penanaman mangrove untuk membangun sabuk hijau yang melindungi garis pantai dari abrasi.',
-        'donors' => 245,
-        'days_left' => 30
-    ],
-    [
-        'id' => 2,
-        'title' => 'Reboisasi Lereng Merapi',
-        'location' => 'Magelang, Jawa Tengah',
-        'tree_type' => 'Sengon & Mahoni',
-        'price_per_tree' => 12000,
-        'target_trees' => 4000,
-        'current_trees' => 2300,
-        'image' => 'https://images.unsplash.com/photo-1472214103451-9374bd1c798e?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
-        'description' => 'Penanaman sengon dan mahoni di lereng Merapi untuk mencegah erosi dan longsor.',
-        'donors' => 312,
-        'days_left' => 15
-    ],
-    [
-        'id' => 3,
-        'title' => 'Penghijauan Hutan Lombok',
-        'location' => 'Lombok, NTB',
-        'tree_type' => 'Mahoni',
-        'price_per_tree' => 15000,
-        'target_trees' => 3000,
-        'current_trees' => 780,
-        'image' => 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
-        'description' => 'Penanaman pohon di kawasan hutan yang terbakar untuk memulihkan ekosistem.',
-        'donors' => 156,
-        'days_left' => 45
-    ],
-    [
-        'id' => 4,
-        'title' => 'Hutan Pangan Kalimantan',
-        'location' => 'Kutai, Kaltim',
-        'tree_type' => 'Durian & Petai',
-        'price_per_tree' => 25000,
-        'target_trees' => 2000,
-        'current_trees' => 450,
-        'image' => 'https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
-        'description' => 'Program hutan pangan untuk memberdayakan masyarakat adat dan melestarikan hutan.',
-        'donors' => 89,
-        'days_left' => 60
-    ],
-    [
-        'id' => 5,
-        'title' => 'Konservasi Hutan Papua',
-        'location' => 'Jayapura, Papua',
-        'tree_type' => 'Merbau',
-        'price_per_tree' => 30000,
-        'target_trees' => 1500,
-        'current_trees' => 320,
-        'image' => 'https://images.unsplash.com/photo-1425913397330-cf8af2ff40a1?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
-        'description' => 'Konservasi hutan tropis Papua untuk melindungi keanekaragaman hayati.',
-        'donors' => 67,
-        'days_left' => 90
-    ],
-    [
-        'id' => 6,
-        'title' => 'Mangrove Pesisir Jakarta',
-        'location' => 'Jakarta Utara',
-        'tree_type' => 'Mangrove',
-        'price_per_tree' => 10000,
-        'target_trees' => 3500,
-        'current_trees' => 1250,
-        'image' => 'https://images.unsplash.com/photo-1621451498295-af1ea68616ee?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
-        'description' => 'Penanaman mangrove di kawasan pesisir Jakarta Utara untuk perlindungan banjir rob.',
-        'donors' => 198,
-        'days_left' => 25
-    ]
-];
+// ================= DATA STATISTIK =================
+$stats = getCampaignStats();
+$total_trees = $stats['total_trees'];
+$total_planted = $stats['total_planted'];
+$total_donors = $stats['total_donors'];
+$total_locations = $stats['total_locations'];
+
+// ================= AMBIL DATA CAMPAIGN =================
+$campaigns = getCampaignsForHome(6); // Ambil 6 campaign terbaru untuk home page
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -514,28 +440,30 @@ session_start();
 
             <!-- Campaign Grid -->
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                <?php foreach ($campaigns as $index => $campaign): 
-                    $progress = ($campaign['current_trees'] / $campaign['target_trees']) * 100;
-                    $progress = round($progress, 1);
+                <?php 
+                if (count($campaigns) > 0):
+                    foreach ($campaigns as $index => $campaign): 
+                    $progress = ($campaign['target_trees'] > 0) ? round(($campaign['current_trees'] / $campaign['target_trees']) * 100, 1) : 0;
                 ?>
                 <div class="campaign-card group" data-aos="fade-up" data-aos-delay="<?php echo $index * 100; ?>">
                     <!-- Image Container -->
-                    <div class="relative h-56 overflow-hidden">
-                        <img src="<?php echo $campaign['image']; ?>" 
-                             alt="<?php echo $campaign['title']; ?>"
-                             class="campaign-image w-full h-full object-cover">
+                    <div class="relative h-56 overflow-hidden bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center">
+                        <img src="<?php echo htmlspecialchars($campaign['image']); ?>" 
+                             alt="<?php echo htmlspecialchars($campaign['title']); ?>"
+                             class="campaign-image w-full h-full object-cover"
+                             loading="lazy">
                         
                         <!-- Overlay Gradient -->
                         <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
                         
                         <!-- Badges -->
                         <div class="absolute top-4 left-4 flex gap-2">
-                            <?php if ($index == 1): ?>
+                            <?php if ($index == 0): ?>
                             <span class="badge-new px-3 py-1 rounded-full text-white text-xs font-bold">
                                 <i class="fas fa-star mr-1"></i>BARU
                             </span>
                             <?php endif; ?>
-                            <?php if ($campaign['days_left'] <= 15): ?>
+                            <?php if ($campaign['days_left'] <= 15 && $campaign['days_left'] > 0): ?>
                             <span class="badge-urgent px-3 py-1 rounded-full text-white text-xs font-bold">
                                 <i class="fas fa-clock mr-1"></i>URGENT
                             </span>
@@ -562,20 +490,20 @@ session_start();
                         <!-- Title & Location -->
                         <div class="mb-4">
                             <h3 class="text-xl font-bold text-gray-900 mb-2 line-clamp-2 group-hover:text-primary-700 transition">
-                                <?php echo $campaign['title']; ?>
+                                <?php echo htmlspecialchars($campaign['title']); ?>
                             </h3>
                             <div class="flex items-center text-gray-500 text-sm">
                                 <i class="fas fa-map-marker-alt mr-2 text-primary-600"></i>
-                                <?php echo $campaign['location']; ?>
+                                <?php echo htmlspecialchars($campaign['location']); ?>
                                 <span class="mx-2">•</span>
                                 <i class="fas fa-leaf mr-2 text-primary-600"></i>
-                                <?php echo $campaign['tree_type']; ?>
+                                <?php echo htmlspecialchars($campaign['tree_type']); ?>
                             </div>
                         </div>
                         
                         <!-- Description -->
                         <p class="text-gray-600 text-sm mb-4 line-clamp-2">
-                            <?php echo $campaign['description']; ?>
+                            <?php echo htmlspecialchars($campaign['description']); ?>
                         </p>
                         
                         <!-- Progress Bar -->
@@ -589,7 +517,7 @@ session_start();
                             </div>
                             <div class="flex justify-between mt-2">
                                 <span class="text-xs text-gray-500">
-                                    <i class="fas fa-users mr-1"></i><?php echo $campaign['donors']; ?> donatur
+                                    <i class="fas fa-users mr-1"></i><?php echo number_format($campaign['donors']); ?> donatur
                                 </span>
                                 <span class="text-xs font-semibold text-primary-700">
                                     <?php echo $progress; ?>% terkumpul
@@ -601,7 +529,15 @@ session_start();
                         <div class="flex items-center justify-between pt-4 border-t border-gray-100">
                             <div class="flex items-center text-sm">
                                 <i class="far fa-clock mr-2 text-gray-400"></i>
-                                <span class="text-gray-600"><?php echo $campaign['days_left']; ?> hari lagi</span>
+                                <span class="text-gray-600">
+                                    <?php 
+                                    if($campaign['days_left'] > 0) {
+                                        echo $campaign['days_left'] . ' hari lagi';
+                                    } else {
+                                        echo "Selesai";
+                                    }
+                                    ?>
+                                </span>
                             </div>
                             <a href="campaign-detail.php?id=<?php echo $campaign['id']; ?>" 
                                class="inline-flex items-center text-primary-700 font-semibold hover:text-primary-800 transition group">
@@ -611,7 +547,16 @@ session_start();
                         </div>
                     </div>
                 </div>
-                <?php endforeach; ?>
+                <?php 
+                    endforeach; 
+                else:
+                ?>
+                    <div class="col-span-3 text-center py-12">
+                        <i class="fas fa-folder-open text-5xl text-gray-300 mb-4"></i>
+                        <h3 class="text-xl font-bold text-gray-700 mb-2">Belum Ada Campaign</h3>
+                        <p class="text-gray-500">Saat ini belum ada campaign yang tersedia di database.</p>
+                    </div>
+                <?php endif; ?>
             </div>
             
             <!-- View All Button -->
@@ -946,20 +891,6 @@ session_start();
                 nav.classList.add('glass-effect');
             }
         });
-        
-        // Counter animation
-        function animateValue(element, start, end, duration) {
-            let startTimestamp = null;
-            const step = (timestamp) => {
-                if (!startTimestamp) startTimestamp = timestamp;
-                const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-                element.innerText = Math.floor(progress * (end - start) + start).toLocaleString();
-                if (progress < 1) {
-                    window.requestAnimationFrame(step);
-                }
-            };
-            window.requestAnimationFrame(step);
-        }
     </script>
 </body>
 </html>
