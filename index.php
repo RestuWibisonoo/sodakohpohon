@@ -256,7 +256,7 @@ $campaigns = getCampaignsForHome(6); // Ambil 6 campaign terbaru untuk home page
                             <i class="fas fa-leaf text-green-600 text-3xl"></i>
                         </div>
                         <!-- Title & Subtitle -->
-                        <h3 class="text-2xl font-bold text-gray-900 mb-2">SustainabiliTy</h3>
+                        <h3 class="text-2xl font-bold text-gray-900 mb-2">Sustainability</h3>
                         <p class="text-primary-600 font-semibold mb-4 text-sm">Proyek Berkelanjutan</p>
                         <!-- Description -->
                         <p class="text-gray-600 text-sm leading-relaxed mb-6">
