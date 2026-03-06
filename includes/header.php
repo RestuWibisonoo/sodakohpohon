@@ -1,9 +1,18 @@
 <?php
+// Mulai session jika belum dimulai
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
 // Deteksi halaman saat ini
 $current_page = basename($_SERVER['PHP_SELF']);
 $is_home = $current_page === 'index.php' || $current_page === 'header.php';
 $is_campaign = $current_page === 'campaign.php' || $current_page === 'campaign-detail.php';
 $is_laporan = $current_page === 'laporan.php';
+
+// Deteksi status login user
+$is_logged_in = isset($_SESSION['user_logged_in']) && $_SESSION['user_logged_in'] === true;
+$user_name = $_SESSION['user_name'] ?? '';
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -209,19 +218,19 @@ $is_laporan = $current_page === 'laporan.php';
             <div class="flex justify-between items-center h-20">
                 
                 <!-- Logo -->
-                <div class="flex items-center space-x-3 flex-shrink-0">
+                <div class="flex items-center space-x-2 flex-shrink-0">
                     <div class="relative">
-                        <div class="absolute inset-0 bg-primary-600 rounded-xl blur-sm opacity-60"></div>
-                        <div class="relative bg-gradient-to-br from-primary-600 to-primary-700 rounded-xl p-2.5">
-                            <i class="fas fa-tree text-white text-2xl"></i>
+                        <div class="absolute inset-0 bg-primary-600 rounded-lg blur-sm opacity-60"></div>
+                        <div class="relative bg-gradient-to-br from-primary-600 to-primary-700 rounded-lg p-1.5">
+                            <i class="fas fa-tree text-white text-lg"></i>
                         </div>
                     </div>
                     <div class="flex flex-col">
-                        <span class="text-2xl font-extrabold">
+                        <span class="text-lg font-extrabold">
                             <span class="text-primary-700">Sodakoh</span>
                             <span class="text-earth-700">Pohon</span>
                         </span>
-                        <span class="text-xs text-gray-500 -mt-1">Sedekah dalam bentuk pohon</span>
+                        <span class="text-xs text-gray-500 -mt-1">Sedekah pohon</span>
                     </div>
                 </div>
 
@@ -282,6 +291,42 @@ $is_laporan = $current_page === 'laporan.php';
                     <a href="admin/login.php" class="hidden md:inline-flex items-center px-4 py-2 border-2 border-primary-600 text-primary-700 font-semibold rounded-lg hover:bg-primary-50 transition text-sm">
                         <i class="fas fa-user-shield mr-2"></i>Admin
                     </a>
+                    
+                    <!-- Login / Account Menu -->
+                    <?php if ($is_logged_in): ?>
+                        <!-- User Account Dropdown -->
+                        <div class="relative group">
+                            <button class="flex items-center justify-center w-10 h-10 rounded-full bg-primary-100 text-primary-600 hover:bg-primary-200 hover:shadow-lg hover:scale-110 transition duration-200 cursor-pointer" title="<?php echo htmlspecialchars($user_name); ?>">
+                                <i class="fas fa-user text-lg"></i>
+                            </button>
+                            <!-- Dropdown Menu -->
+                            <div class="absolute right-0 mt-1 w-48 bg-white rounded-xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 py-2 z-50 border border-gray-100">
+                                <div class="px-4 py-3 border-b border-gray-100">
+                                    <p class="text-sm font-semibold text-gray-900"><?php echo htmlspecialchars($user_name); ?></p>
+                                    <p class="text-xs text-gray-500"><?php echo htmlspecialchars($_SESSION['user_email'] ?? ''); ?></p>
+                                </div>
+                                <a href="#" class="block px-4 py-2 text-gray-700 hover:bg-primary-50 hover:text-primary-600 transition duration-150 text-sm">
+                                    <i class="fas fa-history mr-2 w-4"></i>Histori Donasi
+                                </a>
+                                <a href="#" class="block px-4 py-2 text-gray-700 hover:bg-primary-50 hover:text-primary-600 transition duration-150 text-sm">
+                                    <i class="fas fa-certificate mr-2 w-4"></i>Sertifikat
+                                </a>
+                                <a href="#" class="block px-4 py-2 text-gray-700 hover:bg-primary-50 hover:text-primary-600 transition duration-150 text-sm">
+                                    <i class="fas fa-user-circle mr-2 w-4"></i>Profile
+                                </a>
+                                <div class="border-t border-gray-100 my-1"></div>
+                                <a href="auth.php?action=logout" class="block px-4 py-2 text-red-600 hover:bg-red-50 transition duration-150 text-sm font-semibold">
+                                    <i class="fas fa-sign-out-alt mr-2 w-4"></i>Logout
+                                </a>
+                            </div>
+                        </div>
+                    <?php else: ?>
+                        <!-- Login Button -->
+                        <a href="login.php" class="inline-flex items-center px-6 py-2.5 bg-primary-600 text-white font-semibold rounded-lg hover:bg-primary-700 transition text-sm whitespace-nowrap">
+                            <i class="fas fa-sign-in-alt mr-2"></i>Login
+                        </a>
+                    <?php endif; ?>
+
                     <a href="#campaigns" class="inline-flex items-center px-6 py-2.5 bg-gradient-to-r from-primary-600 to-primary-700 text-white font-semibold rounded-lg hover:from-primary-700 hover:to-primary-800 transition shadow-lg shadow-primary-600/25 text-sm whitespace-nowrap">
                         <i class="fas fa-hand-holding-heart mr-2"></i>Mulai Sedekah
                     </a>
