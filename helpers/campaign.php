@@ -20,24 +20,22 @@ function formatCampaignImage($image)
         return $image;
     }
 
-    // Jika null atau kosong, pakai placeholder
+    // Jika null atau kosong, pakai gambar default
     if (empty($image)) {
-        return 'https://via.placeholder.com/600x400?text=Campaign+Image';
+        return 'assets/images/campaign-default.png';
     }
 
     // Normalize path: convert backslash to forward slash
     $image = str_replace('\\', '/', $image);
-    
-    // Remove 'uploads/campaigns/' prefix if already exists to prevent duplication
-    $image = preg_replace('#^uploads/campaigns/#i', '', $image);
-    
-    // Return full path with forward slashes
+
+    // Jika sudah path lengkap yang valid (starts with uploads/ atau assets/), return as-is
+    if (str_starts_with($image, 'uploads/') || str_starts_with($image, 'assets/')) {
+        return $image . '?t=' . (intval(time() / 3600));
+    }
+
+    // Fallback: asumsikan file ada di uploads/campaigns/
     $local_path = 'uploads/campaigns/' . $image;
-    
-    // Add simple cache buster using time (force refresh every hour)
-    $cache_busted = $local_path . '?t=' . (intval(time() / 3600));
-    
-    return $cache_busted;
+    return $local_path . '?t=' . (intval(time() / 3600));
 }
 
 /**

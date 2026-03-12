@@ -14,10 +14,10 @@ $campaignModel = new Campaign();
 
 // Helper: resolve image URL (handle local uploads vs external URLs)
 function campaignImageUrl($path) {
-    if (empty($path)) return 'https://via.placeholder.com/400x200?text=No+Image';
+    if (empty($path)) return '../assets/images/campaign-default.png';
     // External URL (http/https) → return as-is
     if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) return $path;
-    // Local path like 'uploads/campaigns/...' → prepend '../'
+    // Local path like 'uploads/campaigns/...' or 'assets/images/...' → prepend '../'
     return '../' . ltrim($path, '/');
 }
 
@@ -515,7 +515,7 @@ $current_page = 'campaign';
                                 <img src="<?php echo htmlspecialchars(campaignImageUrl($campaign['image'] ?? '')); ?>"
                                     alt="<?php echo htmlspecialchars($campaign['title']); ?>"
                                     class="w-full h-full object-cover"
-                                    onerror="this.src='https://via.placeholder.com/400x200?text=No+Image'">
+                                    onerror="this.src='../assets/images/campaign-default.png'">
                                 <div class="absolute top-3 right-3">
                                     <span class="status-badge <?php echo $status_class; ?>">
                                         <?php echo $status_text; ?>

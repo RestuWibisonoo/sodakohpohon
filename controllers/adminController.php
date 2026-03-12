@@ -117,6 +117,58 @@ function jsonResponse($success, $message, $data = [])
     exit;
 }
 
+/**
+ * Upload foto penanaman ke folder uploads/plantings/
+ * @param array $file - $_FILES['image']
+ * @return string|false - path relatif jika sukses, false jika gagal
+ */
+function uploadPlantingImage($file)
+{
+    $target_dir = UPLOAD_PATH . 'plantings/';
+
+    // Buat folder jika belum ada
+    if (!file_exists($target_dir)) {
+        mkdir($target_dir, 0777, true);
+    }
+
+    // Pastikan folder bisa ditulis
+    if (!is_writable($target_dir)) {
+        error_log("uploadPlantingImage: Directory not writable: " . $target_dir);
+        return false;
+    }
+
+    // Cek apakah file gambar valid
+    $check = getimagesize($file['tmp_name']);
+    if ($check === false) {
+        error_log("uploadPlantingImage: File bukan gambar valid: " . $file['name']);
+        return false;
+    }
+
+    // Cek ukuran file (max 5MB)
+    if ($file['size'] > 5000000) {
+        error_log("uploadPlantingImage: File terlalu besar: " . $file['size']);
+        return false;
+    }
+
+    // Cek format file
+    $file_extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+    $allowed_types  = ['jpg', 'jpeg', 'png', 'webp'];
+    if (!in_array($file_extension, $allowed_types)) {
+        error_log("uploadPlantingImage: Format tidak diizinkan: " . $file_extension);
+        return false;
+    }
+
+    $file_name   = uniqid() . '.' . $file_extension;
+    $target_file = $target_dir . $file_name;
+
+    if (move_uploaded_file($file['tmp_name'], $target_file)) {
+        return 'uploads/plantings/' . $file_name;
+    }
+
+    error_log("uploadPlantingImage: move_uploaded_file gagal. tmp=" . $file['tmp_name'] . " target=" . $target_file);
+    return false;
+}
+
 // ============================================================
 // CAMPAIGN FUNCTIONS
 // ============================================================
@@ -136,12 +188,19 @@ function storeCampaign($campaign)
         // Handle upload gambar
         $image_path = '';
         if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
-            $image_path = $campaign->uploadImage($_FILES['image']);
+            $uploaded = $campaign->uploadImage($_FILES['image']);
+            if ($uploaded === false) {
+                jsonResponse(false, 'Gagal upload gambar. Pastikan format file JPG/JPEG/PNG/WEBP dan ukuran maksimal 5MB.');
+            }
+            $image_path = $uploaded;
         }
 
         $data = $_POST;
         if ($image_path) {
             $data['image'] = $image_path;
+        } else {
+            // Gunakan gambar default jika tidak ada upload
+            $data['image'] = 'assets/images/campaign-default.png';
         }
 
         $campaign_id = $campaign->create($data);
@@ -193,9 +252,8 @@ function updateCampaign($campaign)
         }
 
         // Only pass valid DB columns to update
-        // Removed: 'map_url', 'category' (tidak ada di tabel campaigns)
         $allowed_fields = ['title', 'description', 'long_description', 'location', 'tree_type',
-            'price_per_tree', 'target_trees', 'deadline', 'partner', 'status'];
+            'price_per_tree', 'target_trees', 'deadline', 'partner', 'status', 'map_url', 'category'];
         $data = [];
         foreach ($allowed_fields as $field) {
             if (isset($_POST[$field])) {
@@ -370,39 +428,48 @@ function storePlanting($campaign)
 
     $conn = getDB();
 
-    $campaign_id = (int)$_POST['campaign_id'];
-    $trees_planted = (int)$_POST['trees_planted'];
+    // Validasi field wajib
+    $campaign_id = (int)($_POST['campaign_id'] ?? 0);
+    if ($campaign_id <= 0) {
+        jsonResponse(false, 'Campaign harus dipilih');
+    }
+    $trees_planted = (int)($_POST['trees_planted'] ?? 0);
+    if ($trees_planted <= 0) {
+        jsonResponse(false, 'Jumlah pohon harus diisi');
+    }
+    if (empty($_POST['planting_date'])) {
+        jsonResponse(false, 'Tanggal penanaman harus diisi');
+    }
+    if (empty($_POST['location'])) {
+        jsonResponse(false, 'Lokasi penanaman harus diisi');
+    }
+
     $planting_date = $conn->real_escape_string($_POST['planting_date']);
-    $location = $conn->real_escape_string($_POST['location']);
-    $volunteers = (int)($_POST['volunteers'] ?? 0);
-    $coordinator = $conn->real_escape_string($_POST['coordinator'] ?? '');
-    $description = $conn->real_escape_string($_POST['description'] ?? '');
+    $location      = $conn->real_escape_string($_POST['location']);
+    $volunteers    = (int)($_POST['volunteers'] ?? 0);
+    $coordinator   = $conn->real_escape_string($_POST['coordinator'] ?? '');
+    $description   = $conn->real_escape_string($_POST['description'] ?? '');
 
     // Handle upload gambar
     $image_path = '';
     if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
-        $target_dir = UPLOAD_PATH . 'plantings/';
-        if (!file_exists($target_dir)) {
-            mkdir($target_dir, 0777, true);
+        $uploaded = uploadPlantingImage($_FILES['image']);
+        if ($uploaded === false) {
+            jsonResponse(false, 'Gagal upload foto. Pastikan format JPG/JPEG/PNG/WEBP dan ukuran maksimal 5MB.');
         }
-        $ext = strtolower(pathinfo($_FILES['image']['name'], PATHINFO_EXTENSION));
-        $file_name = uniqid() . '.' . $ext;
-        $target_file = $target_dir . $file_name;
-        if (move_uploaded_file($_FILES['image']['tmp_name'], $target_file)) {
-            $image_path = 'uploads/plantings/' . $file_name;
-        }
+        $image_path = $uploaded;
     }
 
+    $image_esc = $conn->real_escape_string($image_path);
     $now = date('Y-m-d H:i:s');
     $sql = "INSERT INTO plantings (campaign_id, trees_planted, planting_date, location, volunteers, coordinator, description, image, status, created_at) 
-            VALUES ({$campaign_id}, {$trees_planted}, '{$planting_date}', '{$location}', {$volunteers}, '{$coordinator}', '{$description}', '{$image_path}', 'completed', '{$now}')";
+            VALUES ({$campaign_id}, {$trees_planted}, '{$planting_date}', '{$location}', {$volunteers}, '{$coordinator}', '{$description}', '{$image_esc}', 'completed', '{$now}')";
 
     if ($conn->query($sql)) {
         // Update planted_trees di campaign
         $campaign->updatePlantedTrees($campaign_id, $trees_planted);
         jsonResponse(true, 'Data penanaman berhasil disimpan', ['redirect' => 'planted.php']);
-    }
-    else {
+    } else {
         jsonResponse(false, 'Gagal menyimpan data penanaman: ' . $conn->error);
     }
 }
@@ -415,34 +482,29 @@ function updatePlanting($campaign)
 
     $conn = getDB();
 
-    $id = (int)$_POST['id'];
+    $id = (int)($_POST['id'] ?? 0);
     if ($id <= 0) {
         jsonResponse(false, 'ID penanaman tidak valid');
     }
 
-    $campaign_id = (int)$_POST['campaign_id'];
-    $trees_planted = (int)$_POST['trees_planted'];
-    $planting_date = $conn->real_escape_string($_POST['planting_date']);
-    $location = $conn->real_escape_string($_POST['location']);
-    $volunteers = (int)($_POST['volunteers'] ?? 0);
-    $coordinator = $conn->real_escape_string($_POST['coordinator'] ?? '');
-    $description = $conn->real_escape_string($_POST['description'] ?? '');
-    $now = date('Y-m-d H:i:s');
+    $campaign_id   = (int)($_POST['campaign_id'] ?? 0);
+    $trees_planted = (int)($_POST['trees_planted'] ?? 0);
+    $planting_date = $conn->real_escape_string($_POST['planting_date'] ?? '');
+    $location      = $conn->real_escape_string($_POST['location'] ?? '');
+    $volunteers    = (int)($_POST['volunteers'] ?? 0);
+    $coordinator   = $conn->real_escape_string($_POST['coordinator'] ?? '');
+    $description   = $conn->real_escape_string($_POST['description'] ?? '');
+    $now           = date('Y-m-d H:i:s');
 
     // Handle upload gambar jika ada file baru
     $image_sql = '';
     if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
-        $target_dir = UPLOAD_PATH . 'plantings/';
-        if (!file_exists($target_dir)) {
-            mkdir($target_dir, 0777, true);
+        $uploaded = uploadPlantingImage($_FILES['image']);
+        if ($uploaded === false) {
+            jsonResponse(false, 'Gagal upload foto. Pastikan format JPG/JPEG/PNG/WEBP dan ukuran maksimal 5MB.');
         }
-        $ext = strtolower(pathinfo($_FILES['image']['name'], PATHINFO_EXTENSION));
-        $file_name = uniqid() . '.' . $ext;
-        $target_file = $target_dir . $file_name;
-        if (move_uploaded_file($_FILES['image']['tmp_name'], $target_file)) {
-            $image_path = 'uploads/plantings/' . $file_name;
-            $image_sql = ", image = '{$image_path}'";
-        }
+        $image_path_esc = $conn->real_escape_string($uploaded);
+        $image_sql = ", image = '{$image_path_esc}'";
     }
 
     $sql = "UPDATE plantings 
@@ -454,8 +516,7 @@ function updatePlanting($campaign)
 
     if ($conn->query($sql)) {
         jsonResponse(true, 'Data penanaman berhasil diupdate');
-    }
-    else {
+    } else {
         jsonResponse(false, 'Gagal mengupdate data penanaman: ' . $conn->error);
     }
 }
@@ -497,10 +558,6 @@ function getChartData($donation)
 {
     $year = isset($_GET['year']) ? $_GET['year'] : date('Y');
     $monthly_donations = $donation->getMonthlyDonations($year);
-
-    jsonResponse(true, 'OK', ['data' => ['monthly_donations' => $monthly_donations]]);
-}
-?>  $monthly_donations = $donation->getMonthlyDonations($year);
 
     jsonResponse(true, 'OK', ['data' => ['monthly_donations' => $monthly_donations]]);
 }

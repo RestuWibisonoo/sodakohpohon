@@ -416,6 +416,12 @@ class Campaign
             mkdir($target_dir, 0777, true);
         }
 
+        // Pastikan folder bisa ditulis
+        if (!is_writable($target_dir)) {
+            error_log("Campaign uploadImage: Directory not writable: " . $target_dir);
+            return false;
+        }
+
         $file_extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
         $file_name = uniqid() . '.' . $file_extension;
         $target_file = $target_dir . $file_name;
@@ -423,17 +429,20 @@ class Campaign
         // Cek apakah file gambar valid
         $check = getimagesize($file['tmp_name']);
         if ($check === false) {
+            error_log("Campaign uploadImage: File bukan gambar valid: " . $file['name']);
             return false;
         }
 
         // Cek ukuran file (max 5MB)
         if ($file['size'] > 5000000) {
+            error_log("Campaign uploadImage: File terlalu besar: " . $file['size']);
             return false;
         }
 
         // Cek format file
         $allowed_types = ['jpg', 'jpeg', 'png', 'webp'];
         if (!in_array($file_extension, $allowed_types)) {
+            error_log("Campaign uploadImage: Format file tidak diizinkan: " . $file_extension);
             return false;
         }
 
@@ -441,6 +450,7 @@ class Campaign
             return 'uploads/campaigns/' . $file_name;
         }
 
+        error_log("Campaign uploadImage: move_uploaded_file gagal. tmp=" . $file['tmp_name'] . " target=" . $target_file);
         return false;
     }
 }
