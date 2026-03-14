@@ -118,7 +118,7 @@ function jsonResponse($success, $message, $data = [])
 }
 
 /**
- * Upload foto penanaman ke folder uploads/plantings/
+ * Upload foto thumbnail penanaman ke folder uploads/plantings/
  * @param array $file - $_FILES['image']
  * @return string|false - path relatif jika sukses, false jika gagal
  */
@@ -126,31 +126,26 @@ function uploadPlantingImage($file)
 {
     $target_dir = UPLOAD_PATH . 'plantings/';
 
-    // Buat folder jika belum ada
     if (!file_exists($target_dir)) {
         mkdir($target_dir, 0777, true);
     }
 
-    // Pastikan folder bisa ditulis
     if (!is_writable($target_dir)) {
         error_log("uploadPlantingImage: Directory not writable: " . $target_dir);
         return false;
     }
 
-    // Cek apakah file gambar valid
     $check = getimagesize($file['tmp_name']);
     if ($check === false) {
         error_log("uploadPlantingImage: File bukan gambar valid: " . $file['name']);
         return false;
     }
 
-    // Cek ukuran file (max 5MB)
     if ($file['size'] > 5000000) {
         error_log("uploadPlantingImage: File terlalu besar: " . $file['size']);
         return false;
     }
 
-    // Cek format file
     $file_extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
     $allowed_types  = ['jpg', 'jpeg', 'png', 'webp'];
     if (!in_array($file_extension, $allowed_types)) {
@@ -167,6 +162,68 @@ function uploadPlantingImage($file)
 
     error_log("uploadPlantingImage: move_uploaded_file gagal. tmp=" . $file['tmp_name'] . " target=" . $target_file);
     return false;
+}
+
+/**
+ * Upload beberapa foto galeri penanaman ke folder uploads/planting_gallery/
+ * @param array $files - $_FILES['gallery_images'] dalam format array
+ * @param int $planting_id - ID planting
+ * @return array - list path yang berhasil diupload
+ */
+function uploadPlantingGalleryImages($files, $planting_id)
+{
+    $target_dir = UPLOAD_PATH . 'planting_gallery/';
+    if (!file_exists($target_dir)) {
+        mkdir($target_dir, 0777, true);
+    }
+
+    $allowed_types = ['jpg', 'jpeg', 'png', 'webp'];
+    $conn = getDB();
+    $now  = date('Y-m-d H:i:s');
+    $uploaded_paths = [];
+
+    // Normalkan struktur $_FILES untuk array input
+    $count = count($files['name']);
+    for ($i = 0; $i < $count; $i++) {
+        if ($files['error'][$i] !== UPLOAD_ERR_OK) continue;
+        if ($files['size'][$i] > 5000000) continue;
+
+        $ext = strtolower(pathinfo($files['name'][$i], PATHINFO_EXTENSION));
+        if (!in_array($ext, $allowed_types)) continue;
+
+        $check = getimagesize($files['tmp_name'][$i]);
+        if ($check === false) continue;
+
+        $file_name   = uniqid('pg_') . '.' . $ext;
+        $target_file = $target_dir . $file_name;
+
+        if (move_uploaded_file($files['tmp_name'][$i], $target_file)) {
+            $path     = $conn->real_escape_string('uploads/planting_gallery/' . $file_name);
+            $planting = (int)$planting_id;
+            $conn->query("INSERT INTO planting_gallery (planting_id, image_url, created_at) VALUES ({$planting}, '{$path}', '{$now}')");
+            $uploaded_paths[] = 'uploads/planting_gallery/' . $file_name;
+        }
+    }
+
+    return $uploaded_paths;
+}
+
+/**
+ * Hapus foto galeri penanaman berdasarkan ID-nya
+ * @param int $gallery_id
+ */
+function deletePlantingGalleryItem($gallery_id)
+{
+    $conn = getDB();
+    $id   = (int)$gallery_id;
+    $row  = $conn->query("SELECT image_url FROM planting_gallery WHERE id = {$id}")->fetch_assoc();
+    if ($row) {
+        $file_path = dirname(__DIR__) . '/' . $row['image_url'];
+        if (file_exists($file_path)) {
+            @unlink($file_path);
+        }
+        $conn->query("DELETE FROM planting_gallery WHERE id = {$id}");
+    }
 }
 
 // ============================================================
@@ -450,7 +507,7 @@ function storePlanting($campaign)
     $coordinator   = $conn->real_escape_string($_POST['coordinator'] ?? '');
     $description   = $conn->real_escape_string($_POST['description'] ?? '');
 
-    // Handle upload gambar
+    // Handle upload thumbnail
     $image_path = '';
     if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
         $uploaded = uploadPlantingImage($_FILES['image']);
@@ -466,8 +523,16 @@ function storePlanting($campaign)
             VALUES ({$campaign_id}, {$trees_planted}, '{$planting_date}', '{$location}', {$volunteers}, '{$coordinator}', '{$description}', '{$image_esc}', 'completed', '{$now}')";
 
     if ($conn->query($sql)) {
+        $new_planting_id = $conn->insert_id;
+
         // Update planted_trees di campaign
         $campaign->updatePlantedTrees($campaign_id, $trees_planted);
+
+        // Handle upload foto galeri tambahan (multiple)
+        if (isset($_FILES['gallery_images']) && !empty($_FILES['gallery_images']['name'][0])) {
+            uploadPlantingGalleryImages($_FILES['gallery_images'], $new_planting_id);
+        }
+
         jsonResponse(true, 'Data penanaman berhasil disimpan', ['redirect' => 'planted.php']);
     } else {
         jsonResponse(false, 'Gagal menyimpan data penanaman: ' . $conn->error);
@@ -496,7 +561,7 @@ function updatePlanting($campaign)
     $description   = $conn->real_escape_string($_POST['description'] ?? '');
     $now           = date('Y-m-d H:i:s');
 
-    // Handle upload gambar jika ada file baru
+    // Handle upload thumbnail baru jika ada
     $image_sql = '';
     if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
         $uploaded = uploadPlantingImage($_FILES['image']);
@@ -515,6 +580,18 @@ function updatePlanting($campaign)
             WHERE id = {$id}";
 
     if ($conn->query($sql)) {
+        // Handle hapus foto galeri yang dipilih
+        if (isset($_POST['delete_gallery_ids']) && is_array($_POST['delete_gallery_ids'])) {
+            foreach ($_POST['delete_gallery_ids'] as $gid) {
+                deletePlantingGalleryItem((int)$gid);
+            }
+        }
+
+        // Handle upload foto galeri tambahan baru
+        if (isset($_FILES['gallery_images']) && !empty($_FILES['gallery_images']['name'][0])) {
+            uploadPlantingGalleryImages($_FILES['gallery_images'], $id);
+        }
+
         jsonResponse(true, 'Data penanaman berhasil diupdate');
     } else {
         jsonResponse(false, 'Gagal mengupdate data penanaman: ' . $conn->error);
@@ -533,12 +610,23 @@ function deletePlanting()
     }
 
     $conn = getDB();
-    $sql = "DELETE FROM plantings WHERE id = {$id}";
 
+    // Hapus dulu foto-foto galeri dari file system
+    $gallery_rows = $conn->query("SELECT image_url FROM planting_gallery WHERE planting_id = {$id}");
+    if ($gallery_rows) {
+        while ($g = $gallery_rows->fetch_assoc()) {
+            $file_path = dirname(__DIR__) . '/' . $g['image_url'];
+            if (file_exists($file_path)) {
+                @unlink($file_path);
+            }
+        }
+    }
+    // planting_gallery akan ikut terhapus karena ON DELETE CASCADE
+
+    $sql = "DELETE FROM plantings WHERE id = {$id}";
     if ($conn->query($sql)) {
         jsonResponse(true, 'Data penanaman berhasil dihapus');
-    }
-    else {
+    } else {
         jsonResponse(false, 'Gagal menghapus data penanaman');
     }
 }

@@ -62,6 +62,7 @@ $edit_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 
 // Jika edit, cari data planting yang akan diedit
 $edit_planting = null;
+$edit_gallery  = [];
 if ($action == 'edit' && $edit_id > 0) {
     foreach ($plantings as $p) {
         if ($p['id'] == $edit_id) {
@@ -69,8 +70,18 @@ if ($action == 'edit' && $edit_id > 0) {
             break;
         }
     }
-    if (!$edit_planting)
+    if (!$edit_planting) {
         $action = 'list'; // fallback jika tidak ditemukan
+    } else {
+        // Ambil foto galeri untuk planting ini
+        $gallery_sql = "SELECT id, image_url, caption FROM planting_gallery WHERE planting_id = {$edit_id} ORDER BY created_at ASC";
+        $gallery_res = $conn->query($gallery_sql);
+        if ($gallery_res) {
+            while ($g = $gallery_res->fetch_assoc()) {
+                $edit_gallery[] = $g;
+            }
+        }
+    }
 }
 
 $current_page = 'planted';
@@ -300,16 +311,16 @@ endif; ?>
 
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">
-                                Upload Foto Dokumentasi
+                                <i class="fas fa-image mr-1 text-primary-600"></i>
+                                Foto Thumbnail
                             </label>
                             <?php if ($edit_planting && $edit_planting['image']): ?>
                             <div class="mb-3">
-                                <p class="text-xs text-gray-500 mb-2">Foto saat ini:</p>
+                                <p class="text-xs text-gray-500 mb-2">Thumbnail saat ini:</p>
                                 <img src="<?php echo plantingImageUrl($edit_planting['image']); ?>" alt="Foto penanaman"
                                     class="h-32 rounded-lg object-cover">
                             </div>
-                            <?php
-    endif; ?>
+                            <?php endif; ?>
                             <div class="flex items-center justify-center w-full">
                                 <label id="uploadArea"
                                     class="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer bg-gray-50 hover:bg-gray-100">
@@ -317,13 +328,62 @@ endif; ?>
                                         class="flex flex-col items-center justify-center pt-5 pb-6">
                                         <i class="fas fa-cloud-upload-alt text-2xl text-primary-600 mb-2"></i>
                                         <p class="mb-1 text-sm text-gray-600">
-                                            <span class="font-semibold">Klik untuk upload</span> atau drag & drop
+                                            <span class="font-semibold">Klik untuk upload thumbnail</span> atau drag &amp; drop
                                         </p>
-                                        <p class="text-xs text-gray-500">PNG, JPG, JPEG (MAX. 5MB)</p>
+                                        <p class="text-xs text-gray-500">PNG, JPG, JPEG (MAX. 5MB) &mdash; 1 foto</p>
                                     </div>
                                     <img id="imagePreview" src="" alt="Preview"
                                         class="hidden h-36 rounded-lg object-cover">
                                     <input type="file" name="image" class="hidden" accept="image/*" id="imageInput">
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Galeri Foto Tambahan -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                <i class="fas fa-images mr-1 text-primary-600"></i>
+                                Foto Galeri Dokumentasi
+                                <span class="text-xs font-normal text-gray-400 ml-1">(bisa pilih beberapa foto sekaligus)</span>
+                            </label>
+
+                            <?php if (!empty($edit_gallery)): ?>
+                            <!-- Foto galeri yang sudah ada (mode edit) -->
+                            <div class="mb-4">
+                                <p class="text-xs text-gray-500 mb-3">Foto galeri saat ini &mdash; centang untuk dihapus:</p>
+                                <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3" id="existingGallery">
+                                    <?php foreach ($edit_gallery as $g): ?>
+                                    <div class="relative group" id="gallery-item-<?php echo $g['id']; ?>">
+                                        <img src="../<?php echo htmlspecialchars($g['image_url']); ?>"
+                                            alt="Galeri" class="w-full h-24 object-cover rounded-lg border border-gray-200">
+                                        <label class="absolute inset-0 flex items-center justify-center bg-black/40 rounded-lg opacity-0 group-hover:opacity-100 cursor-pointer transition">
+                                            <input type="checkbox" name="delete_gallery_ids[]" value="<?php echo $g['id']; ?>"
+                                                class="gallery-delete-cb w-5 h-5 accent-red-500"
+                                                onchange="toggleDeleteOverlay(this, <?php echo $g['id']; ?>)">
+                                            <span class="text-white text-xs ml-1">Hapus</span>
+                                        </label>
+                                        <div id="overlay-<?php echo $g['id']; ?>" class="hidden absolute inset-0 bg-red-500/60 rounded-lg flex items-center justify-center">
+                                            <i class="fas fa-trash text-white text-xl"></i>
+                                        </div>
+                                    </div>
+                                    <?php endforeach; ?>
+                                </div>
+                            </div>
+                            <?php endif; ?>
+
+                            <!-- Upload foto galeri baru -->
+                            <div class="flex items-center justify-center w-full">
+                                <label id="galleryUploadArea"
+                                    class="flex flex-col items-center justify-center w-full min-h-40 border-2 border-dashed border-blue-300 rounded-xl cursor-pointer bg-blue-50 hover:bg-blue-100 transition p-4">
+                                    <div id="galleryPlaceholder" class="flex flex-col items-center justify-center">
+                                        <i class="fas fa-images text-2xl text-blue-500 mb-2"></i>
+                                        <p class="mb-1 text-sm text-gray-600">
+                                            <span class="font-semibold">Klik untuk upload foto galeri</span>
+                                        </p>
+                                        <p class="text-xs text-gray-500">PNG, JPG, JPEG (MAX. 5MB per foto) &mdash; bisa pilih banyak</p>
+                                    </div>
+                                    <div id="galleryPreviewGrid" class="hidden grid grid-cols-3 gap-2 w-full mt-2"></div>
+                                    <input type="file" name="gallery_images[]" class="hidden" accept="image/*" id="galleryInput" multiple>
                                 </label>
                             </div>
                         </div>
@@ -704,7 +764,7 @@ endif; ?>
             }
 
             // ============================================================
-            // IMAGE PREVIEW
+            // IMAGE PREVIEW — thumbnail
             // ============================================================
             document.getElementById('imageInput')?.addEventListener('change', function () {
                 const file = this.files[0];
@@ -720,6 +780,54 @@ endif; ?>
                     reader.readAsDataURL(file);
                 }
             });
+
+            // ============================================================
+            // IMAGE PREVIEW — galeri multi-foto
+            // ============================================================
+            document.getElementById('galleryInput')?.addEventListener('change', function () {
+                const files = this.files;
+                const grid = document.getElementById('galleryPreviewGrid');
+                const placeholder = document.getElementById('galleryPlaceholder');
+
+                grid.innerHTML = '';
+                if (files.length === 0) {
+                    grid.classList.add('hidden');
+                    placeholder.classList.remove('hidden');
+                    return;
+                }
+
+                placeholder.classList.add('hidden');
+                grid.classList.remove('hidden');
+
+                Array.from(files).forEach(file => {
+                    const reader = new FileReader();
+                    reader.onload = function (e) {
+                        const wrapper = document.createElement('div');
+                        wrapper.className = 'relative';
+                        const img = document.createElement('img');
+                        img.src = e.target.result;
+                        img.className = 'w-full h-24 object-cover rounded-lg border border-blue-200';
+                        wrapper.appendChild(img);
+                        grid.appendChild(wrapper);
+                    };
+                    reader.readAsDataURL(file);
+                });
+            });
+
+            // ============================================================
+            // TOGGLE HAPUS FOTO GALERI (mode edit)
+            // ============================================================
+            window.toggleDeleteOverlay = function(cb, id) {
+                const overlay = document.getElementById('overlay-' + id);
+                if (!overlay) return;
+                if (cb.checked) {
+                    overlay.classList.remove('hidden');
+                    overlay.classList.add('flex');
+                } else {
+                    overlay.classList.add('hidden');
+                    overlay.classList.remove('flex');
+                }
+            };
         }); // end DOMContentLoaded
     </script>
 </body>

@@ -1,40 +1,57 @@
 <?php
 // campaign-detail.php
-// Simulasi data campaign berdasarkan ID (nanti akan diambil dari database)
-$campaign_id = isset($_GET['id']) ? $_GET['id'] : 1;
+require_once 'config/koneksi.php';
+require_once 'models/Campaign.php';
 
-// Simulasi data campaign
-$campaign = [
-    'id' => 1,
-    'title' => 'Restorasi Mangrove Demak',
-    'location' => 'Demak, Jawa Tengah',
-    'tree_type' => 'Mangrove Rhizophora',
-    'price_per_tree' => 10000,
-    'current_trees' => 1450,
-    'target_trees' => 5000,
-    'image' => 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80',
-    'description' => 'Kawasan pesisir Demak mengalami abrasi yang cukup parah dalam beberapa tahun terakhir. Program penanaman mangrove ini bertujuan untuk membangun sabuk hijau yang melindungi garis pantai dari abrasi, sekaligus mengembalikan ekosistem mangrove yang menjadi habitat berbagai biota laut.',
-    'long_description' => 'Mangrove memiliki peran vital dalam ekosistem pesisir. Akarnya yang kokoh mampu menahan abrasi dan tsunami, menjadi tempat pemijahan ikan dan udang, serta menyerap karbon lebih banyak dibanding hutan tropis. Program ini merupakan kolaborasi dengan Kelompok Tani Hutan Mangrove Demak dan Dinas Kelautan dan Perikanan setempat. Setiap donasi akan digunakan untuk pembelian bibit, penanaman, dan perawatan selama 3 bulan pertama.',
-    'benefits' => [
-        'Melindungi garis pantai dari abrasi',
-        'Menciptakan habitat baru bagi biota laut',
-        'Menyerap karbon hingga 4x lebih banyak',
-        'Memberdayakan masyarakat lokal'
-    ],
-    'gallery' => [
-        'https://images.unsplash.com/photo-1621451498295-af1ea68616ee?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
-        'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
-        'https://images.unsplash.com/photo-1624535168245-0f9d5d773c2e?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
-        'https://images.unsplash.com/photo-1627548941779-2c635951b9ab?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80'
-    ],
-    'donors' => 245,
-    'days_left' => 30,
-    'partner' => 'Kelompok Tani Hutan Mangrove Demak',
-    'map_url' => 'https://maps.google.com/?q=-6.8945,110.6364'
-];
+// Validasi ID dari URL
+$campaign_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+if ($campaign_id <= 0) {
+    header('Location: campaign.php');
+    exit;
+}
 
-$progress = ($campaign['current_trees'] / $campaign['target_trees']) * 100;
-$remaining_trees = $campaign['target_trees'] - $campaign['current_trees'];
+$campaignModel = new Campaign();
+$campaign = $campaignModel->getById($campaign_id);
+
+// Jika campaign tidak ditemukan, redirect ke halaman campaign
+if (!$campaign) {
+    header('Location: campaign.php');
+    exit;
+}
+
+// Hitung nilai turunan
+$progress        = $campaign['progress'] ?? 0;
+$remaining_trees = $campaign['remaining_trees'] ?? 0;
+$days_left       = $campaign['days_left'] ?? 0;
+$benefits        = $campaign['benefits'] ?? [];  // array string
+$gallery         = $campaign['gallery'] ?? [];   // array row dari campaign_gallery
+
+// Gabungkan juga foto dari planting_gallery milik planting campaign ini
+$conn = getDB();
+$pg_sql = "SELECT pg.image_url, pg.caption 
+           FROM planting_gallery pg 
+           JOIN plantings p ON pg.planting_id = p.id 
+           WHERE p.campaign_id = {$campaign_id} 
+           ORDER BY pg.created_at DESC 
+           LIMIT 20";
+$pg_res = $conn->query($pg_sql);
+if ($pg_res) {
+    while ($row = $pg_res->fetch_assoc()) {
+        $gallery[] = ['image_url' => $row['image_url'], 'caption' => $row['caption']];
+    }
+}
+
+// Ambil campaign lain (aktif, bukan campaign ini) untuk sidebar
+$other_campaigns = $campaignModel->getActiveCampaigns(4);
+$other_campaigns = array_filter($other_campaigns, fn($c) => $c['id'] != $campaign_id);
+$other_campaigns = array_slice(array_values($other_campaigns), 0, 3);
+
+// Helper: resolusi path gambar ke URL
+function campaignImageUrl($path) {
+    if (empty($path)) return 'assets/images/campaign-default.png';
+    if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) return $path;
+    return $path; // path relatif dari root publik
+}
 ?>
 <?php include 'includes/header.php'; ?>
 
@@ -42,11 +59,10 @@ $remaining_trees = $campaign['target_trees'] - $campaign['current_trees'];
     <div class="pt-20">
         <!-- Hero Section Campaign -->
         <div class="relative h-[400px] lg:h-[500px] overflow-hidden">
-            <img src="<?php echo $campaign['image']; ?>" 
-                 alt="<?php echo $campaign['title']; ?>"
+            <img src="<?php echo htmlspecialchars(campaignImageUrl($campaign['image'])); ?>" 
+                 alt="<?php echo htmlspecialchars($campaign['title']); ?>"
                  class="absolute inset-0 w-full h-full object-cover"
-                 loading="eager"
-                 crossorigin="anonymous">
+                 loading="eager">
             <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
             
             <!-- Breadcrumb -->
@@ -77,10 +93,10 @@ $remaining_trees = $campaign['target_trees'] - $campaign['current_trees'];
                         </h1>
                         <div class="flex items-center text-white/80 text-sm">
                             <i class="fas fa-users mr-2"></i>
-                            <?php echo number_format($campaign['donors']); ?> donatur
+                            <?php echo number_format($campaign['donors_count'] ?? 0); ?> donatur
                             <span class="mx-3">•</span>
                             <i class="fas fa-clock mr-2"></i>
-                            <?php echo $campaign['days_left']; ?> hari tersisa
+                            <?php echo $days_left > 0 ? $days_left . ' hari tersisa' : 'Telah berakhir'; ?>
                         </div>
                     </div>
                     
@@ -157,16 +173,20 @@ $remaining_trees = $campaign['target_trees'] - $campaign['current_trees'];
                         <!-- Benefits -->
                         <div class="mt-6 pt-6 border-t border-gray-100">
                             <h3 class="font-semibold text-gray-900 mb-4">Manfaat Program:</h3>
+                            <?php if (!empty($benefits)): ?>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                <?php foreach ($campaign['benefits'] as $benefit): ?>
+                                <?php foreach ($benefits as $benefit): ?>
                                 <div class="flex items-center text-gray-700">
                                     <div class="w-6 h-6 bg-primary-100 rounded-full flex items-center justify-center mr-3">
                                         <i class="fas fa-check text-primary-600 text-xs"></i>
                                     </div>
-                                    <span><?php echo $benefit; ?></span>
+                                    <span><?php echo htmlspecialchars($benefit); ?></span>
                                 </div>
                                 <?php endforeach; ?>
                             </div>
+                            <?php else: ?>
+                            <p class="text-gray-500 text-sm">Belum ada data manfaat untuk campaign ini.</p>
+                            <?php endif; ?>
                         </div>
                     </div>
                     
@@ -174,27 +194,31 @@ $remaining_trees = $campaign['target_trees'] - $campaign['current_trees'];
                     <div class="bg-white rounded-2xl shadow-card p-6" data-aos="fade-up">
                         <div class="flex justify-between items-center mb-4">
                             <h2 class="text-xl font-bold text-gray-900">Dokumentasi</h2>
-                            <span class="text-sm text-primary-600 font-semibold"><?php echo count($campaign['gallery']); ?> foto</span>
+                            <span class="text-sm text-primary-600 font-semibold"><?php echo count($gallery); ?> foto</span>
                         </div>
                         
-                        <div class="grid grid-cols-4 gap-3">
-                            <?php foreach ($campaign['gallery'] as $index => $image): ?>
+                        <?php if (!empty($gallery)): ?>
+                        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                            <?php foreach ($gallery as $index => $img): ?>
+                            <?php
+                                // Normalisasi: bisa array dengan key image_url, atau langsung string
+                                $imgUrl = is_array($img) ? ($img['image_url'] ?? '') : $img;
+                            ?>
                             <div class="gallery-item rounded-xl overflow-hidden aspect-square">
-                                <img src="<?php echo $image; ?>" 
+                                <img src="<?php echo htmlspecialchars($imgUrl); ?>" 
                                      alt="Dokumentasi <?php echo $index + 1; ?>"
                                      class="w-full h-full object-cover"
                                      loading="lazy"
-                                     crossorigin="anonymous">
+                                     onerror="this.parentElement.classList.add('hidden')">
                             </div>
                             <?php endforeach; ?>
                         </div>
-                        
-                        <div class="mt-4 text-center">
-                            <button class="text-primary-600 font-semibold hover:text-primary-700 transition">
-                                <i class="fas fa-images mr-2"></i>
-                                Lihat semua dokumentasi
-                            </button>
+                        <?php else: ?>
+                        <div class="text-center py-8 text-gray-400">
+                            <i class="fas fa-images text-4xl mb-3"></i>
+                            <p>Belum ada foto dokumentasi</p>
                         </div>
+                        <?php endif; ?>
                     </div>
                     
                     <!-- Location -->
@@ -213,13 +237,15 @@ $remaining_trees = $campaign['target_trees'] - $campaign['current_trees'];
                         <div class="flex items-center justify-between">
                             <div class="flex items-center text-gray-600">
                                 <i class="fas fa-map-pin text-primary-600 mr-2"></i>
-                                <?php echo $campaign['location']; ?>
+                                <?php echo htmlspecialchars($campaign['location']); ?>
                             </div>
-                            <a href="<?php echo $campaign['map_url']; ?>" target="_blank" 
+                            <?php if (!empty($campaign['map_url'])): ?>
+                            <a href="<?php echo htmlspecialchars($campaign['map_url']); ?>" target="_blank" rel="noopener noreferrer"
                                class="text-primary-600 hover:text-primary-700 font-semibold text-sm">
                                 Buka Google Maps
                                 <i class="fas fa-external-link-alt ml-1"></i>
                             </a>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>
@@ -317,31 +343,28 @@ $remaining_trees = $campaign['target_trees'] - $campaign['current_trees'];
                             </div>
                         </div>
                         
-                        <!-- Similar Campaigns -->
+                        <!-- Campaign Lainnya (dinamis dari DB) -->
                         <div class="bg-white rounded-2xl shadow-card p-6 mt-6">
                             <h3 class="font-bold text-gray-900 mb-4">Campaign Lainnya</h3>
+                            <?php if (!empty($other_campaigns)): ?>
                             <div class="space-y-3">
-                                <a href="#" class="flex gap-3 hover:bg-gray-50 p-2 rounded-xl transition">
-                                    <img src="https://images.unsplash.com/photo-1472214103451-9374bd1c798e?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80" 
-                                         alt="Campaign" 
-                                         class="w-16 h-16 object-cover rounded-lg">
-                                    <div>
-                                        <h4 class="font-semibold text-gray-900 text-sm">Reboisasi Lereng Merapi</h4>
-                                        <p class="text-xs text-gray-500">12.000/pohon</p>
-                                        <p class="text-xs text-primary-600 mt-1">2300 pohon terkumpul</p>
+                                <?php foreach ($other_campaigns as $oc): ?>
+                                <a href="campaign-detail.php?id=<?php echo $oc['id']; ?>" class="flex gap-3 hover:bg-gray-50 p-2 rounded-xl transition">
+                                    <img src="<?php echo htmlspecialchars(campaignImageUrl($oc['image'])); ?>" 
+                                         alt="<?php echo htmlspecialchars($oc['title']); ?>" 
+                                         class="w-16 h-16 object-cover rounded-lg flex-shrink-0"
+                                         onerror="this.src='assets/images/campaign-default.png'">
+                                    <div class="min-w-0">
+                                        <h4 class="font-semibold text-gray-900 text-sm line-clamp-2"><?php echo htmlspecialchars($oc['title']); ?></h4>
+                                        <p class="text-xs text-gray-500">Rp <?php echo number_format($oc['price_per_tree']); ?>/pohon</p>
+                                        <p class="text-xs text-primary-600 mt-1"><?php echo number_format($oc['current_trees']); ?> pohon terkumpul</p>
                                     </div>
                                 </a>
-                                <a href="#" class="flex gap-3 hover:bg-gray-50 p-2 rounded-xl transition">
-                                    <img src="https://images.unsplash.com/photo-1441974231531-c6227db76b6e?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80" 
-                                         alt="Campaign" 
-                                         class="w-16 h-16 object-cover rounded-lg">
-                                    <div>
-                                        <h4 class="font-semibold text-gray-900 text-sm">Penghijauan Hutan Lombok</h4>
-                                        <p class="text-xs text-gray-500">15.000/pohon</p>
-                                        <p class="text-xs text-primary-600 mt-1">780 pohon terkumpul</p>
-                                    </div>
-                                </a>
+                                <?php endforeach; ?>
                             </div>
+                            <?php else: ?>
+                            <p class="text-sm text-gray-400">Tidak ada campaign lain saat ini.</p>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>
@@ -455,9 +478,25 @@ $remaining_trees = $campaign['target_trees'] - $campaign['current_trees'];
         });
         
         function addToCart(campaignId, quantity) {
-            // Simulasi add to cart
-            alert('Berhasil ditambahkan ke keranjang!\nCampaign: <?php echo $campaign['title']; ?>\nJumlah: ' + quantity + ' pohon\nTotal: Rp ' + (quantity * pricePerTree).toLocaleString('id-ID'));
-            window.location.href = 'cart.php';
+            fetch('controllers/campaignController.php?action=add_to_cart', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: 'campaign_id=' + campaignId + '&trees=' + quantity
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    // Tampilkan toast sukses
+                    const toast = document.createElement('div');
+                    toast.className = 'fixed bottom-6 right-6 bg-primary-600 text-white px-6 py-3 rounded-xl shadow-lg z-50 flex items-center gap-2 animate-bounce';
+                    toast.innerHTML = '<i class="fas fa-check-circle"></i> Berhasil ditambahkan ke keranjang!';
+                    document.body.appendChild(toast);
+                    setTimeout(() => toast.remove(), 3000);
+                } else {
+                    alert(data.message || 'Gagal menambahkan ke keranjang');
+                }
+            })
+            .catch(() => alert('Terjadi kesalahan koneksi'));
         }
         
         function donateNow() {
