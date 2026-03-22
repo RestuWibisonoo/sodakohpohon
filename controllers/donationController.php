@@ -2,6 +2,8 @@
 // controllers/donationController.php
 // Controller untuk menangani semua request terkait donasi
 
+if (session_status() === PHP_SESSION_NONE) { session_start(); }
+
 require_once dirname(__DIR__) . '/config/koneksi.php';
 require_once dirname(__DIR__) . '/models/Donation.php';
 require_once dirname(__DIR__) . '/models/Campaign.php';
@@ -68,8 +70,9 @@ class DonationController {
         $message = isset($_POST['message']) ? trim($_POST['message']) : '';
         $terms = isset($_POST['terms']) ? (bool)$_POST['terms'] : false;
         
-        // Validasi terms
-        if (!$terms) {
+        // Validasi terms (checkbox dikirim sebagai string '1' atau 'on')
+        $terms_val = isset($_POST['terms']) ? $_POST['terms'] : '';
+        if (empty($terms_val)) {
             echo json_encode([
                 'success' => false,
                 'message' => 'Anda harus menyetujui syarat dan ketentuan'
@@ -300,11 +303,19 @@ class DonationController {
 }
 
 // Router untuk donation controller
-$action = isset($_GET['action']) ? $_GET['action'] : 'checkout';
+$action = isset($_GET['action']) ? $_GET['action'] : '';
+// Juga terima action dari POST body (untuk AJAX dari checkout.php)
+if (empty($action) && isset($_POST['action'])) {
+    $action = $_POST['action'];
+}
+if (empty($action)) {
+    $action = 'checkout';
+}
 $controller = new DonationController();
 
 switch ($action) {
     case 'process':
+    case 'process_donation':          // dari checkout.php AJAX
         $controller->processDonation();
         break;
         

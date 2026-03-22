@@ -3,7 +3,8 @@
 // Model untuk mengelola keranjang donasi
 
 require_once dirname(__DIR__) . '/config/koneksi.php';
-require_once 'Campaign.php';
+require_once __DIR__ . '/Campaign.php';
+require_once __DIR__ . '/Donation.php';
 
 class Cart {
     private $db;

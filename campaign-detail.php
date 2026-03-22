@@ -539,6 +539,11 @@ function mapEmbedUrl($map_url) {
                         window.location.href = 'checkout.php';
                     } else {
                         showToast('Berhasil ditambahkan ke keranjang!');
+                        // Update badge keranjang di header
+                        if (data.cart && data.cart.total_items !== undefined) {
+                            const badge = document.getElementById('cartBadge');
+                            if (badge) badge.textContent = data.cart.total_items;
+                        }
                     }
                 } else {
                     showToast(data.message || 'Gagal menambahkan ke keranjang', true);
