@@ -52,6 +52,23 @@ function campaignImageUrl($path) {
     if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) return $path;
     return $path; // path relatif dari root publik
 }
+
+// Helper: konversi Google Maps share URL → embed src
+// Ekstrak koordinat dari pola @lat,lng lalu buat URL embed
+function mapEmbedUrl($map_url) {
+    if (empty($map_url)) {
+        // Default: Indonesia tengah
+        return 'https://www.google.com/maps?q=-2.5,118.0&z=5&output=embed';
+    }
+    // Coba ekstrak @lat,lng dari URL (format umum Google Maps)
+    if (preg_match('/@(-?[\d.]+),(-?[\d.]+)/', $map_url, $m)) {
+        $lat = $m[1];
+        $lng = $m[2];
+        return "https://www.google.com/maps?q={$lat},{$lng}&z=15&output=embed";
+    }
+    // Fallback: Indonesia tengah
+    return 'https://www.google.com/maps?q=-2.5,118.0&z=5&output=embed';
+}
 ?>
 <?php include 'includes/header.php'; ?>
 
@@ -230,8 +247,9 @@ function campaignImageUrl($path) {
                                 height="100%" 
                                 frameborder="0" 
                                 style="border:0"
-                                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3966.521260322283!2d106.827279!3d-6.17511!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e69f5d2e764b12d%3A0x3d2ad6e1e0e9bcc8!2sJakarta!5e0!3m2!1sen!2sid!4v1234567890"
-                                allowfullscreen>
+                                src="<?php echo htmlspecialchars(mapEmbedUrl($campaign['map_url'] ?? '')); ?>"
+                                allowfullscreen
+                                loading="lazy">
                             </iframe>
                         </div>
                         <div class="flex items-center justify-between">
@@ -283,11 +301,11 @@ function campaignImageUrl($path) {
                                 
                                 <!-- Quick Select -->
                                 <div class="flex gap-2 mt-3">
-                                    <button onclick="setQuantity(1)" class="flex-1 py-2 border border-gray-200 rounded-xl text-sm hover:bg-primary-600 hover:text-white hover:border-primary-600 transition">1</button>
-                                    <button onclick="setQuantity(3)" class="flex-1 py-2 border border-gray-200 rounded-xl text-sm hover:bg-primary-600 hover:text-white hover:border-primary-600 transition">3</button>
-                                    <button onclick="setQuantity(5)" class="flex-1 py-2 border border-primary-600 bg-primary-600 text-white rounded-xl text-sm">5</button>
-                                    <button onclick="setQuantity(10)" class="flex-1 py-2 border border-gray-200 rounded-xl text-sm hover:bg-primary-600 hover:text-white hover:border-primary-600 transition">10</button>
-                                    <button onclick="setQuantity(20)" class="flex-1 py-2 border border-gray-200 rounded-xl text-sm hover:bg-primary-600 hover:text-white hover:border-primary-600 transition">20</button>
+                                    <button onclick="setQuantity(1, this)" class="quick-select-btn flex-1 py-2 border border-gray-200 rounded-xl text-sm hover:bg-primary-600 hover:text-white hover:border-primary-600 transition">1</button>
+                                    <button onclick="setQuantity(3, this)" class="quick-select-btn flex-1 py-2 border border-gray-200 rounded-xl text-sm hover:bg-primary-600 hover:text-white hover:border-primary-600 transition">3</button>
+                                    <button onclick="setQuantity(5, this)" class="quick-select-btn flex-1 py-2 border border-gray-200 rounded-xl text-sm hover:bg-primary-600 hover:text-white hover:border-primary-600 transition">5</button>
+                                    <button onclick="setQuantity(10, this)" class="quick-select-btn flex-1 py-2 border border-gray-200 rounded-xl text-sm hover:bg-primary-600 hover:text-white hover:border-primary-600 transition">10</button>
+                                    <button onclick="setQuantity(20, this)" class="quick-select-btn flex-1 py-2 border border-gray-200 rounded-xl text-sm hover:bg-primary-600 hover:text-white hover:border-primary-600 transition">20</button>
                                 </div>
                             </div>
                             
@@ -308,7 +326,6 @@ function campaignImageUrl($path) {
                             <!-- Action Buttons -->
                             <div class="space-y-3">
                                 <button id="addToCartBtn" 
-                                        onclick="addToCart(<?php echo $campaign['id']; ?>, document.getElementById('treeCount').innerText)"
                                         class="w-full bg-gradient-to-r from-primary-600 to-primary-700 text-white font-bold py-4 px-6 rounded-2xl hover:from-primary-700 hover:to-primary-800 transition shadow-lg shadow-primary-600/25">
                                     <i class="fas fa-cart-plus mr-2"></i>
                                     Tambah ke Keranjang
@@ -440,76 +457,116 @@ function campaignImageUrl($path) {
         });
 
         const pricePerTree = <?php echo $campaign['price_per_tree']; ?>;
-        const treeCountEl = document.getElementById('treeCount');
+        const campaignId   = <?php echo (int)$campaign['id']; ?>;
+        const isLoggedIn   = <?php echo $is_logged_in ? 'true' : 'false'; ?>;
+        const loginRedirect = 'login.php?redirect=' + encodeURIComponent('campaign-detail.php?id=<?php echo (int)$campaign['id']; ?>');
+
+        const treeCountEl  = document.getElementById('treeCount');
         const totalPriceEl = document.getElementById('totalPrice');
-        
+
+        /* ── Helpers ──────────────────────────────────────────────── */
         function updateTotal() {
             const count = parseInt(treeCountEl.innerText);
-            const total = count * pricePerTree;
-            totalPriceEl.innerText = total.toLocaleString('id-ID');
+            totalPriceEl.innerText = (count * pricePerTree).toLocaleString('id-ID');
         }
-        
-        function setQuantity(count) {
+
+        function showToast(msg, isError = false) {
+            const toast = document.createElement('div');
+            toast.className = 'fixed bottom-6 right-6 ' +
+                (isError ? 'bg-red-600' : 'bg-primary-600') +
+                ' text-white px-6 py-3 rounded-xl shadow-lg z-50 flex items-center gap-2 animate-bounce';
+            toast.innerHTML = '<i class="fas fa-' + (isError ? 'exclamation-circle' : 'check-circle') + '"></i> ' + msg;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        /* ── Quick-Select (Fix 1) ─────────────────────────────────── */
+        function setQuantity(count, btn) {
             treeCountEl.innerText = count;
             updateTotal();
-            
-            // Update active state on quick select buttons
-            document.querySelectorAll('.quick-select-btn').forEach(btn => {
-                btn.classList.remove('bg-primary-600', 'text-white', 'border-primary-600');
-                btn.classList.add('border-gray-200');
+            // Reset semua tombol
+            document.querySelectorAll('.quick-select-btn').forEach(b => {
+                b.classList.remove('bg-primary-600', 'text-white', 'border-primary-600');
+                b.classList.add('border-gray-200');
+                b.classList.remove('text-gray-700'); // bersihkan sisa
             });
-            event.target.classList.add('bg-primary-600', 'text-white', 'border-primary-600');
+            // Aktifkan tombol yang dipilih
+            if (btn) {
+                btn.classList.add('bg-primary-600', 'text-white', 'border-primary-600');
+                btn.classList.remove('border-gray-200');
+            }
         }
-        
+
+        // +/− buttons → hapus active state dari quick-select
         document.getElementById('increaseBtn').addEventListener('click', function() {
             let count = parseInt(treeCountEl.innerText);
-            count++;
-            treeCountEl.innerText = count;
+            treeCountEl.innerText = ++count;
             updateTotal();
+            document.querySelectorAll('.quick-select-btn').forEach(b => {
+                b.classList.remove('bg-primary-600', 'text-white', 'border-primary-600');
+                b.classList.add('border-gray-200');
+            });
         });
-        
+
         document.getElementById('decreaseBtn').addEventListener('click', function() {
             let count = parseInt(treeCountEl.innerText);
             if (count > 1) {
-                count--;
-                treeCountEl.innerText = count;
+                treeCountEl.innerText = --count;
                 updateTotal();
+                document.querySelectorAll('.quick-select-btn').forEach(b => {
+                    b.classList.remove('bg-primary-600', 'text-white', 'border-primary-600');
+                    b.classList.add('border-gray-200');
+                });
             }
         });
-        
-        function addToCart(campaignId, quantity) {
+
+        /* ── Add to Cart (Fix 2 & 3) ─────────────────────────────── */
+        function addToCart(cid, qty, redirectAfter) {
+            if (!isLoggedIn) {
+                window.location.href = loginRedirect;
+                return;
+            }
             fetch('controllers/campaignController.php?action=add_to_cart', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                body: 'campaign_id=' + campaignId + '&trees=' + quantity
+                body: 'campaign_id=' + cid + '&quantity=' + qty
             })
             .then(r => r.json())
             .then(data => {
                 if (data.success) {
-                    // Tampilkan toast sukses
-                    const toast = document.createElement('div');
-                    toast.className = 'fixed bottom-6 right-6 bg-primary-600 text-white px-6 py-3 rounded-xl shadow-lg z-50 flex items-center gap-2 animate-bounce';
-                    toast.innerHTML = '<i class="fas fa-check-circle"></i> Berhasil ditambahkan ke keranjang!';
-                    document.body.appendChild(toast);
-                    setTimeout(() => toast.remove(), 3000);
+                    if (redirectAfter) {
+                        // Donasi Langsung: langsung ke checkout
+                        window.location.href = 'checkout.php';
+                    } else {
+                        showToast('Berhasil ditambahkan ke keranjang!');
+                    }
                 } else {
-                    alert(data.message || 'Gagal menambahkan ke keranjang');
+                    showToast(data.message || 'Gagal menambahkan ke keranjang', true);
                 }
             })
-            .catch(() => alert('Terjadi kesalahan koneksi'));
+            .catch(() => showToast('Terjadi kesalahan koneksi', true));
         }
-        
+
+        // Tombol "Tambah ke Keranjang"
+        document.getElementById('addToCartBtn').onclick = function() {
+            addToCart(campaignId, parseInt(treeCountEl.innerText), false);
+        };
+
+        // Tombol "Donasi Langsung"
         function donateNow() {
-            const quantity = parseInt(treeCountEl.innerText);
-            addToCart(<?php echo $campaign['id']; ?>, quantity);
+            addToCart(campaignId, parseInt(treeCountEl.innerText), true);
         }
-        
-        // Set initial active state
-        document.querySelectorAll('.quick-select-btn').forEach(btn => {
-            if (btn.innerText === '5') {
-                btn.classList.add('bg-primary-600', 'text-white', 'border-primary-600');
-            }
-        });
+
+        /* ── Init active state tombol "5" ─────────────────────────── */
+        (function() {
+            const btns = document.querySelectorAll('.quick-select-btn');
+            btns.forEach(b => {
+                if (b.innerText.trim() === '5') {
+                    b.classList.add('bg-primary-600', 'text-white', 'border-primary-600');
+                    b.classList.remove('border-gray-200');
+                }
+            });
+        })();
     </script>
 </body>
 </html>
