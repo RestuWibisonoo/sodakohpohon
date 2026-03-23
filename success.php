@@ -1,19 +1,53 @@
 <?php
 // success.php
-session_start();
+require_once 'config/koneksi.php';
+require_once 'models/Donation.php';
 
-// Simulasi data donasi yang berhasil
-$donation = [
-    'id' => 'SP-' . date('Ymd') . '-001',
-    'campaign_title' => 'Restorasi Mangrove Demak',
-    'trees_count' => 5,
-    'total_amount' => 50000,
-    'donor_name' => 'Anonymous',
-    'date' => date('d F Y'),
-    'certificate_number' => 'SP-CERT-' . date('Ymd') . '-001'
-];
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+// Baca donation_id dari URL
+$donation_id = isset($_GET['donation_id']) ? (int)$_GET['donation_id'] : 0;
+
+$donationModel = new Donation();
+$donation      = null;
+
+if ($donation_id > 0) {
+    $donation = $donationModel->getById($donation_id);
+}
+
+// Fallback ke flash session jika ID tidak ada/tidak ketemu
+if (!$donation && isset($_SESSION['last_donation'])) {
+    $donation = $_SESSION['last_donation'];
+}
+
+// Jika benar-benar tidak ada, tampilkan halaman sukses generik
+if (!$donation) {
+    $donation = [
+        'donation_number'    => '-',
+        'campaign_title'     => '-',
+        'trees_count'        => 0,
+        'amount'             => 0,
+        'donor_name'         => 'Donatur',
+        'created_at'         => date('Y-m-d H:i:s'),
+        'certificate_number' => '-',
+        'status'             => 'pending',
+    ];
+}
+
+$trees_count        = $donation['trees_count'] ?? 0;
+$campaign_title     = $donation['campaign_title'] ?? '-';
+$donor_name         = $donation['donor_name'] ?? 'Donatur';
+$amount             = $donation['amount'] ?? 0;
+$donation_number    = $donation['donation_number'] ?? '-';
+$certificate_number = $donation['certificate_number'] ?? '-';
+$created_date       = isset($donation['created_at'])
+    ? date('d F Y', strtotime($donation['created_at']))
+    : date('d F Y');
 ?>
 <?php include 'includes/header.php'; ?>
+
     <!-- Confetti Effect -->
     <div id="confetti-container" class="fixed inset-0 pointer-events-none z-50"></div>
 
@@ -28,7 +62,7 @@ $donation = [
                 
                 <!-- Success Icon -->
                 <div class="relative mb-8">
-                    <div class="w-24 h-24 mx-auto bg-gradient-to-r from-primary-600 to-primary-700 rounded-full flex items-center justify-center checkmark-animation shadow-xl shadow-primary-600/30">
+                    <div class="w-24 h-24 mx-auto bg-gradient-to-r from-primary-600 to-primary-700 rounded-full flex items-center justify-center shadow-xl shadow-primary-600/30" style="animation: checkmark 0.5s ease-out">
                         <i class="fas fa-check text-white text-4xl"></i>
                     </div>
                     <div class="absolute -top-2 -right-2 w-10 h-10 bg-yellow-400 rounded-full flex items-center justify-center animate-bounce">
@@ -38,11 +72,14 @@ $donation = [
                 
                 <!-- Thank You Message -->
                 <h1 class="text-3xl md:text-4xl font-extrabold text-gray-900 mb-4">
-                    Terima Kasih!
+                    Terima Kasih, <?php echo htmlspecialchars($donor_name); ?>!
                 </h1>
                 <p class="text-lg text-gray-600 mb-8">
-                    Anda telah berhasil menyedekahkan <span class="font-bold text-primary-700 text-2xl"><?php echo $donation['trees_count']; ?> pohon</span> 
-                    melalui program <span class="font-semibold"><?php echo $donation['campaign_title']; ?></span>
+                    Anda telah berhasil menyedekahkan 
+                    <span class="font-bold text-primary-700 text-2xl"><?php echo number_format($trees_count); ?> pohon</span>
+                    <?php if ($campaign_title !== '-'): ?>
+                    melalui program <span class="font-semibold"><?php echo htmlspecialchars($campaign_title); ?></span>
+                    <?php endif; ?>
                 </p>
                 
                 <!-- Impact Statement -->
@@ -60,57 +97,71 @@ $donation = [
                     <div class="space-y-3">
                         <div class="flex justify-between">
                             <span class="text-gray-600">Nomor Donasi</span>
-                            <span class="font-semibold text-gray-900"><?php echo $donation['id']; ?></span>
+                            <span class="font-semibold text-gray-900"><?php echo htmlspecialchars($donation_number); ?></span>
                         </div>
+                        <?php if ($campaign_title !== '-'): ?>
                         <div class="flex justify-between">
                             <span class="text-gray-600">Program</span>
-                            <span class="font-semibold text-gray-900"><?php echo $donation['campaign_title']; ?></span>
+                            <span class="font-semibold text-gray-900"><?php echo htmlspecialchars($campaign_title); ?></span>
                         </div>
+                        <?php endif; ?>
                         <div class="flex justify-between">
                             <span class="text-gray-600">Jumlah Pohon</span>
-                            <span class="font-semibold text-primary-700"><?php echo $donation['trees_count']; ?> pohon</span>
+                            <span class="font-semibold text-primary-700"><?php echo number_format($trees_count); ?> pohon</span>
                         </div>
                         <div class="flex justify-between">
                             <span class="text-gray-600">Total Donasi</span>
-                            <span class="font-bold text-gray-900">Rp <?php echo number_format($donation['total_amount']); ?></span>
+                            <span class="font-bold text-gray-900">Rp <?php echo number_format($amount); ?></span>
                         </div>
                         <div class="flex justify-between">
                             <span class="text-gray-600">Tanggal</span>
-                            <span class="text-gray-700"><?php echo $donation['date']; ?></span>
+                            <span class="text-gray-700"><?php echo $created_date; ?></span>
                         </div>
                         <div class="flex justify-between">
                             <span class="text-gray-600">Status</span>
-                            <span class="inline-flex items-center px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-bold">
-                                <i class="fas fa-check-circle mr-1"></i>
-                                BERHASIL
+                            <span class="inline-flex items-center px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-bold">
+                                <i class="fas fa-clock mr-1"></i>
+                                MENUNGGU PEMBAYARAN
                             </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Info pembayaran simulasi -->
+                <div class="bg-blue-50 border border-blue-200 rounded-2xl p-5 mb-8 text-left">
+                    <div class="flex gap-3">
+                        <i class="fas fa-info-circle text-blue-600 mt-0.5 flex-shrink-0"></i>
+                        <div>
+                            <p class="font-semibold text-blue-800 mb-1">Donasi telah tercatat!</p>
+                            <p class="text-sm text-blue-700">
+                                Pesanan Anda berhasil disimpan dengan nomor <strong><?php echo htmlspecialchars($donation_number); ?></strong>. 
+                                Konfirmasi akan dikirim ke email Anda setelah pembayaran selesai diverifikasi oleh admin.
+                            </p>
                         </div>
                     </div>
                 </div>
                 
                 <!-- Certificate Card -->
+                <?php if ($certificate_number !== '-'): ?>
                 <div class="border-2 border-primary-200 rounded-2xl p-6 mb-8 bg-gradient-to-br from-white to-primary-50">
                     <div class="flex items-center gap-4">
                         <div class="w-16 h-16 bg-primary-100 rounded-2xl flex items-center justify-center">
                             <i class="fas fa-certificate text-3xl text-primary-700"></i>
                         </div>
                         <div class="flex-1 text-left">
-                            <h4 class="font-bold text-gray-900">Sertifikat Donasi</h4>
+                            <h4 class="font-bold text-gray-900">Sertifikat Donasi Disiapkan</h4>
                             <p class="text-sm text-gray-600 mb-2">
-                                Nomor: <?php echo $donation['certificate_number']; ?>
+                                Nomor: <?php echo htmlspecialchars($certificate_number); ?>
                             </p>
-                            <button onclick="downloadCertificate()" 
-                                    class="inline-flex items-center text-primary-700 font-semibold text-sm hover:text-primary-800 transition">
-                                <i class="fas fa-download mr-2"></i>
-                                Unduh Sertifikat
-                            </button>
+                            <p class="text-xs text-gray-500">Akan tersedia setelah pembayaran dikonfirmasi</p>
                         </div>
                     </div>
                 </div>
+                <?php endif; ?>
                 
                 <!-- Action Buttons -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <a href="campaign-detail.php?id=1" 
+                    <a href="campaign.php" 
                        class="inline-flex items-center justify-center px-6 py-4 bg-gradient-to-r from-primary-600 to-primary-700 text-white font-bold rounded-2xl hover:from-primary-700 hover:to-primary-800 transition shadow-lg shadow-primary-600/25">
                         <i class="fas fa-tree mr-2"></i>
                         Donasi Lagi
@@ -135,73 +186,59 @@ $donation = [
                         <button onclick="shareTwitter()" class="w-12 h-12 bg-blue-400 text-white rounded-xl hover:bg-blue-500 transition">
                             <i class="fab fa-twitter text-xl"></i>
                         </button>
-                        <button onclick="shareTelegram()" class="w-12 h-12 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition">
-                            <i class="fab fa-telegram-plane text-xl"></i>
-                        </button>
                     </div>
                 </div>
             </div>
             
-            <!-- Tracking Information -->
+            <!-- Info tracking -->
             <div class="bg-white rounded-2xl shadow-card p-6 mt-6 text-center">
-                <div class="flex items-center justify-center gap-2 text-sm">
-                    <i class="fas fa-map-marker-alt text-primary-600"></i>
-                    <span class="text-gray-700">Lokasi penanaman:</span>
-                    <span class="font-semibold text-gray-900">Demak, Jawa Tengah</span>
+                <div class="flex items-center justify-center gap-2 text-sm mb-2">
+                    <i class="fas fa-envelope text-primary-600"></i>
+                    <span class="text-gray-700">Konfirmasi donasi akan dikirim ke email Anda</span>
                 </div>
-                <p class="text-xs text-gray-500 mt-2">
-                    Anda akan menerima update perkembangan penanaman melalui email dalam 7-14 hari ke depan
+                <p class="text-xs text-gray-500">
+                    Update perkembangan penanaman akan dikirimkan dalam 7-14 hari ke depan
                 </p>
             </div>
         </div>
     </div>
 
     <script>
-        // Create confetti effect
-        function createConfetti() {
+        // Confetti
+        (function createConfetti() {
             const container = document.getElementById('confetti-container');
-            for (let i = 0; i < 50; i++) {
-                const confetti = document.createElement('div');
-                confetti.className = 'confetti';
-                confetti.style.left = Math.random() * 100 + '%';
-                confetti.style.background = `hsl(${Math.random() * 360}, 70%, 50%)`;
-                confetti.style.width = Math.random() * 10 + 5 + 'px';
-                confetti.style.height = Math.random() * 10 + 5 + 'px';
-                confetti.style.animationDelay = Math.random() * 2 + 's';
-                confetti.style.animationDuration = Math.random() * 3 + 3 + 's';
-                container.appendChild(confetti);
+            for (let i = 0; i < 60; i++) {
+                const c = document.createElement('div');
+                c.style.cssText = `
+                    position:absolute;
+                    left:${Math.random()*100}%;
+                    top:-10px;
+                    width:${Math.random()*8+4}px;
+                    height:${Math.random()*8+4}px;
+                    background:hsl(${Math.random()*360},70%,50%);
+                    border-radius:${Math.random()>0.5?'50%':'2px'};
+                    animation:fall ${Math.random()*3+3}s ${Math.random()*2}s linear forwards;
+                `;
+                container.appendChild(c);
             }
-        }
-        
-        // Start confetti on page load
-        window.addEventListener('load', createConfetti);
-        
-        function downloadCertificate() {
-            // Simulasi download sertifikat
-            alert('Sertifikat donasi sedang diunduh...\nNomor: <?php echo $donation['certificate_number']; ?>');
-        }
-        
+        })();
+
         function shareWhatsApp() {
-            const text = encodeURIComponent('Saya baru saja menyedekahkan <?php echo $donation['trees_count']; ?> pohon melalui Sodakoh Pohon. Yuk, ikut berkontribusi untuk lingkungan! 🌳');
-            window.open(`https://wa.me/?text=${text}`, '_blank');
+            const text = encodeURIComponent('Saya baru saja menyedekahkan <?php echo $trees_count; ?> pohon melalui Sodakoh Pohon. Yuk, ikut berkontribusi! 🌳');
+            window.open('https://wa.me/?text=' + text, '_blank');
         }
-        
         function shareFacebook() {
-            const url = encodeURIComponent(window.location.href);
-            window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}`, '_blank');
+            window.open('https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(location.href), '_blank');
         }
-        
         function shareTwitter() {
-            const text = encodeURIComponent('Saya baru saja menyedekahkan <?php echo $donation['trees_count']; ?> pohon melalui Sodakoh Pohon');
-            const url = encodeURIComponent(window.location.href);
-            window.open(`https://twitter.com/intent/tweet?text=${text}&url=${url}`, '_blank');
-        }
-        
-        function shareTelegram() {
-            const text = encodeURIComponent('Saya baru saja menyedekahkan <?php echo $donation['trees_count']; ?> pohon melalui Sodakoh Pohon');
-            const url = encodeURIComponent(window.location.href);
-            window.open(`https://t.me/share/url?url=${url}&text=${text}`, '_blank');
+            const text = encodeURIComponent('Saya baru saja menyedekahkan <?php echo $trees_count; ?> pohon melalui Sodakoh Pohon 🌳');
+            window.open('https://twitter.com/intent/tweet?text=' + text, '_blank');
         }
     </script>
+    <style>
+        @keyframes fall {
+            to { transform: translateY(105vh) rotate(360deg); opacity: 0; }
+        }
+    </style>
 </body>
 </html>

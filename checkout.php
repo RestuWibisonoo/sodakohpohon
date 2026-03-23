@@ -195,7 +195,7 @@ $user_phone = $_SESSION['user_phone'] ?? '';
                         </div>
                     </div>
                     
-                    <button onclick="processPayment()" 
+                    <button id="payBtn" onclick="processPayment()" 
                             class="w-full mt-6 bg-gradient-to-r from-primary-600 to-primary-700 text-white font-bold py-4 px-6 rounded-2xl hover:from-primary-700 hover:to-primary-800 transition shadow-lg shadow-primary-600/25 flex items-center justify-center">
                         <i class="fas fa-lock mr-2"></i>
                         Bayar Sekarang
@@ -236,29 +236,38 @@ $user_phone = $_SESSION['user_phone'] ?? '';
                 return;
             }
 
-            const donor_name   = document.getElementById('donor_name').value.trim();
-            const donor_email  = document.getElementById('donor_email').value.trim();
+            const donor_name  = document.getElementById('donor_name').value.trim();
+            const donor_email = document.getElementById('donor_email').value.trim();
             if (!donor_name || !donor_email) {
                 alert('Nama dan email wajib diisi.');
                 return;
             }
 
-            const btn = document.querySelector('button[onclick="processPayment()"]');
+            const btn = document.getElementById('payBtn');
             btn.disabled = true;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Memproses...';
 
-            const formData = new FormData(document.getElementById('checkoutForm'));
-            formData.append('action', 'process_donation');
-            formData.append('anonymous', document.getElementById('anonymous').checked ? '1' : '0');
+            // Kirim semua field secara eksplisit agar tidak ada yang terlewat
+            const params = new URLSearchParams({
+                action:         'process_donation',
+                donor_name:     donor_name,
+                donor_email:    donor_email,
+                donor_phone:    document.getElementById('donor_phone').value.trim(),
+                anonymous:      document.getElementById('anonymous').checked ? '1' : '0',
+                message:        document.getElementById('message').value.trim(),
+                payment_method: document.getElementById('payment_method').value,
+                terms:          '1'   // sudah divalidasi di atas
+            });
 
             fetch('controllers/donationController.php', {
                 method: 'POST',
-                body: formData
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: params.toString()
             })
             .then(r => r.json())
             .then(data => {
                 if (data.success) {
-                    window.location.href = 'success.php?donation_id=' + (data.donation_id || '');
+                    window.location.href = 'success.php?donation_id=' + data.donation_id;
                 } else {
                     alert(data.message || 'Gagal memproses donasi. Silakan coba lagi.');
                     btn.disabled = false;
