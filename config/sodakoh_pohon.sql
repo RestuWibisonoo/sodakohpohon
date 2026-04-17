@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost
--- Generation Time: Mar 14, 2026 at 03:52 PM
+-- Generation Time: Apr 01, 2026 at 04:20 PM
 -- Server version: 10.4.28-MariaDB
 -- PHP Version: 8.2.4
 
@@ -77,7 +77,8 @@ INSERT INTO `campaigns` (`id`, `title`, `slug`, `description`, `long_description
 (11, 'testing-4-edit', NULL, '99999', '', 'Magelang', 'Pohon Biju', 'Umum', 1000000.00, 999, 999, 999, 0, 'uploads/campaigns/69b259a0a7318.png', '', 'completed', 'Kelompok Ucup Surucup', '2026-02-19 10:23:34', '2026-02-27', NULL),
 (12, 'testing-5-edit', NULL, 'kita akan menguasai dunia test', 'awokawokawokawokawokawokawokawok', 'Magelang', 'Pohon Biju', 'Umum', 100000000.00, 99, 55, 50, 0, 'uploads/campaigns/6996da0c37631.jpeg', 'https://www.google.com/maps/place/Kontrasun/@-7.4589508,110.2227495,17.14z/data=!4m6!3m5!1s0x2e7a850053438bed:0xc0a761e5f440d914!8m2!3d-7.4564443!4d110.2274099!16s%2Fg%2F11vwwxcmn6?entry=ttu&g_ep=EgoyMDI2MDMwOS4wIKXMDSoASAFQAw%3D%3D', 'active', 'Kelompok Ucup Surucup', '2026-02-19 10:38:20', '2026-02-27', '2026-03-14 21:43:12'),
 (13, 'testing-11-edit', NULL, 'jsdhajhasfhjshfhshfsjfsjkahafksl', '', 'Untidar Magelang', 'Pohon Tanaman', 'Umum', 10000.00, 100, 0, 0, 0, 'uploads/campaigns/69b2643fcc4c8.png', '', 'active', 'Untidar', '2026-03-12 07:15:10', '2026-03-20', '2026-03-12 13:59:11'),
-(14, 'testing-12-edit-foto', NULL, 'deskripsi singkat', 'deskripsi panjang', 'Kalimantan', 'Pohon Biju', 'Umum', 100000.00, 100, 0, 0, 0, 'uploads/campaigns/69b2617a6c18e.jpeg', 'https://www.google.com/maps/place/Kontrasun/@-7.4594595,110.2300279,14z/data=!4m6!3m5!1s0x2e7a850053438bed:0xc0a761e5f440d914!8m2!3d-7.4564443!4d110.2274099!16s%2Fg%2F11vwwxcmn6?entry=ttu&g_ep=EgoyMDI2MDMxMS4wIKXMDSoASAFQAw%3D%3D', 'active', 'Kelompok Ucup Surucup', '2026-03-12 07:28:25', '2026-03-25', '2026-03-14 21:40:51');
+(14, 'testing-12-edit-foto', NULL, 'deskripsi singkat', 'deskripsi panjang', 'Kalimantan', 'Pohon Biju', 'Umum', 100000.00, 100, 0, 0, 0, 'uploads/campaigns/69b2617a6c18e.jpeg', 'https://www.google.com/maps/place/Kontrasun/@-7.4594595,110.2300279,14z/data=!4m6!3m5!1s0x2e7a850053438bed:0xc0a761e5f440d914!8m2!3d-7.4564443!4d110.2274099!16s%2Fg%2F11vwwxcmn6?entry=ttu&g_ep=EgoyMDI2MDMxMS4wIKXMDSoASAFQAw%3D%3D', 'active', 'Kelompok Ucup Surucup', '2026-03-12 07:28:25', '2026-03-25', '2026-03-14 21:40:51'),
+(15, 'testing-13', NULL, 'deskripsi singkat', 'deskripsi panjang', 'Desa Selo, Magelang', 'Pinus', 'Umum', 10000.00, 100, 0, 0, 0, 'uploads/campaigns/69c00f10e168c.png', 'https://www.google.com/maps/place/Kontrasun/@-7.4589508,110.2227495,17.14z/data=!4m6!3m5!1s0x2e7a850053438bed:0xc0a761e5f440d914!8m2!3d-7.4564443!4d110.2274099!16s%2Fg%2F11vwwxcmn6?entry=ttu&g_ep=EgoyMDI2MDMwOS4wIKXMDSoASAFQAw%3D%3D', 'active', 'Kelompok Ucup Surucup', '2026-03-22 16:47:28', '2026-04-11', NULL);
 
 -- --------------------------------------------------------
 
@@ -186,7 +187,8 @@ INSERT INTO `donations` (`id`, `donation_number`, `donor_name`, `donor_email`, `
 (6, 'DON-202602-0006', 'Dimas Saputra', 'dimas@mail.com', '081377788899', 0, 2, 15, 180000.00, 'paid', 'bank_transfer', 'bukti_0006.jpg', NULL, 'CERT-202602-0006', '2026-02-19 06:33:09', '2026-02-19 06:33:09'),
 (7, 'DON-202602-0007', 'Anonymous', NULL, NULL, 1, 2, 4, 48000.00, 'failed', 'bank_transfer', NULL, NULL, NULL, '2026-02-19 06:33:09', '2026-02-19 06:33:09'),
 (10, 'DON-202602-0010', 'Agus Setiawan', 'agus@mail.com', '081366677788', 0, 4, 4, 100000.00, 'paid', 'bank_transfer', 'bukti_0010.jpg', 'Untuk masyarakat Kutai', 'CERT-202602-0010', '2026-02-19 06:33:09', '2026-02-19 06:33:09'),
-(11, 'DON-202602-0011', 'Lina Marlina', 'lina@mail.com', '081377766655', 0, 4, 2, 50000.00, 'cancelled', 'qris', NULL, NULL, NULL, '2026-02-19 06:33:09', '2026-02-19 06:33:09');
+(11, 'DON-202602-0011', 'Lina Marlina', 'lina@mail.com', '081377766655', 0, 4, 2, 50000.00, 'cancelled', 'qris', NULL, NULL, NULL, '2026-02-19 06:33:09', '2026-02-19 06:33:09'),
+(14, 'SP-20260322-0001', 'Restu Wibisono', 'restu@gmail.com', '', 0, 15, 3, 30000.00, 'pending', 'BCA Virtual Account', NULL, '', 'SP-CERT-20260322-0001', '2026-03-22 17:46:18', NULL);
 
 -- --------------------------------------------------------
 
@@ -277,8 +279,8 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`id`, `name`, `email`, `password`, `phone`, `avatar`, `role`, `created_at`, `updated_at`, `last_login`) VALUES
-(1, 'Admin Sodakoh', 'admin@sodakohpohon.id', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', NULL, NULL, 'admin', '2026-02-19 05:39:52', NULL, '2026-03-14 20:35:10'),
-(2, 'Restu Wibisono', 'restu@gmail.com', '$2y$10$ayCM/7ZbosyTjP8ANxpBN.O.NlLnyE2Xl1/MT61gMfP06kRF.NoqK', '081234567890', NULL, 'user', '2026-03-12 13:57:51', NULL, '2026-03-12 13:58:02');
+(1, 'Admin Sodakoh', 'admin@sodakohpohon.id', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', NULL, NULL, 'admin', '2026-02-19 05:39:52', NULL, '2026-03-22 23:46:50'),
+(2, 'Restu Wibisono', 'restu@gmail.com', '$2y$10$ayCM/7ZbosyTjP8ANxpBN.O.NlLnyE2Xl1/MT61gMfP06kRF.NoqK', '081234567890', NULL, 'user', '2026-03-12 13:57:51', NULL, '2026-03-22 23:17:42');
 
 --
 -- Indexes for dumped tables
@@ -373,7 +375,7 @@ ALTER TABLE `admin_logs`
 -- AUTO_INCREMENT for table `campaigns`
 --
 ALTER TABLE `campaigns`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
 
 --
 -- AUTO_INCREMENT for table `campaign_benefits`
@@ -397,7 +399,7 @@ ALTER TABLE `carts`
 -- AUTO_INCREMENT for table `donations`
 --
 ALTER TABLE `donations`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
 
 --
 -- AUTO_INCREMENT for table `plantings`

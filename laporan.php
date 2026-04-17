@@ -1,87 +1,138 @@
 <?php
 // laporan.php - Halaman Transparansi dan Laporan Publik
-session_start();
+require_once 'config/koneksi.php';
 
-// Simulasi data statistik (nanti dari database)
-$total_donations = 187650000; // Total donasi dalam rupiah
-$total_trees_collected = 15234;
-$total_trees_planted = 8750;
-$total_donors = 3241;
-$total_campaigns = 12;
-$total_locations = 23;
+$conn = getDB();
 
-// Data donasi per bulan (simulasi)
-$monthly_donations = [
-    'Jan' => 12500000,
-    'Feb' => 15200000,
-    'Mar' => 18400000,
-    'Apr' => 22300000,
-    'May' => 19800000,
-    'Jun' => 25600000,
-    'Jul' => 27800000,
-    'Aug' => 31200000,
-    'Sep' => 29500000,
-    'Oct' => 32400000,
-    'Nov' => 35600000,
-    'Dec' => 38900000
-];
+// ─── STATISTIK OVERVIEW ──────────────────────────────────────────────────────
 
-// Data pohon per campaign
-$campaign_trees = [
-    ['name' => 'Restorasi Mangrove Demak', 'collected' => 1450, 'planted' => 890, 'target' => 5000],
-    ['name' => 'Reboisasi Lereng Merapi', 'collected' => 2300, 'planted' => 1650, 'target' => 4000],
-    ['name' => 'Penghijauan Hutan Lombok', 'collected' => 780, 'planted' => 450, 'target' => 3000],
-    ['name' => 'Hutan Pangan Kalimantan', 'collected' => 450, 'planted' => 120, 'target' => 2000],
-    ['name' => 'Mangrove Pesisir Jakarta', 'collected' => 1250, 'planted' => 840, 'target' => 3500],
-    ['name' => 'Konservasi Hutan Papua', 'collected' => 320, 'planted' => 100, 'target' => 1500]
-];
+// Total donasi (amount) dari donation yang paid
+$row = db_get_row("SELECT COALESCE(SUM(amount), 0) as total FROM donations WHERE status = 'paid'");
+$total_donations = (float)($row['total'] ?? 0);
 
-// Data dokumentasi penanaman
-$planting_documentations = [
-    [
-        'date' => '2026-02-15',
-        'campaign' => 'Restorasi Mangrove Demak',
-        'location' => 'Demak, Jawa Tengah',
-        'trees_planted' => 350,
-        'volunteers' => 45,
-        'image' => 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
-        'description' => 'Penanaman mangrove tahap ke-3 bersama Kelompok Tani Hutan'
-    ],
-    [
-        'date' => '2026-02-10',
-        'campaign' => 'Reboisasi Lereng Merapi',
-        'location' => 'Magelang, Jawa Tengah',
-        'trees_planted' => 500,
-        'volunteers' => 78,
-        'image' => 'https://images.unsplash.com/photo-1472214103451-9374bd1c798e?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
-        'description' => 'Penanaman sengon dan mahoni di lereng Merapi'
-    ],
-    [
-        'date' => '2026-02-05',
-        'campaign' => 'Mangrove Pesisir Jakarta',
-        'location' => 'Jakarta Utara',
-        'trees_planted' => 280,
-        'volunteers' => 52,
-        'image' => 'https://images.unsplash.com/photo-1621451498295-af1ea68616ee?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
-        'description' => 'Penanaman mangrove di kawasan Muara Angke'
-    ],
-    [
-        'date' => '2026-01-28',
-        'campaign' => 'Penghijauan Hutan Lombok',
-        'location' => 'Lombok, NTB',
-        'trees_planted' => 450,
-        'volunteers' => 63,
-        'image' => 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
-        'description' => 'Penanaman 450 pohon di kawasan hutan yang terbakar'
-    ]
-];
+// Total pohon terkumpul (trees_count dari donasi paid)
+$row = db_get_row("SELECT COALESCE(SUM(trees_count), 0) as total FROM donations WHERE status = 'paid'");
+$total_trees_collected = (int)($row['total'] ?? 0);
+
+// Total pohon tertanam (dari tabel plantings)
+$row = db_get_row("SELECT COALESCE(SUM(trees_planted), 0) as total FROM plantings");
+$total_trees_planted = (int)($row['total'] ?? 0);
+
+// Total donatur unik
+$row = db_get_row("SELECT COUNT(DISTINCT donor_email) as total FROM donations WHERE status = 'paid' AND donor_email IS NOT NULL AND donor_email != ''");
+$total_donors = (int)($row['total'] ?? 0);
+
+// Total campaign aktif
+$row = db_get_row("SELECT COUNT(*) as total FROM campaigns WHERE status = 'active'");
+$total_campaigns = (int)($row['total'] ?? 0);
+
+// Total lokasi unik dari plantings
+$row = db_get_row("SELECT COUNT(DISTINCT location) as total FROM plantings");
+$total_locations = (int)($row['total'] ?? 0);
+
+// ─── TREND DONASI PER BULAN (12 BULAN TERAKHIR) ──────────────────────────────
+
+$monthly_raw = db_query("
+    SELECT 
+        DATE_FORMAT(created_at, '%Y-%m') as ym,
+        DATE_FORMAT(created_at, '%b') as month_label,
+        COALESCE(SUM(amount), 0) as total
+    FROM donations
+    WHERE status = 'paid'
+      AND created_at >= DATE_SUB(NOW(), INTERVAL 12 MONTH)
+    GROUP BY DATE_FORMAT(created_at, '%Y-%m')
+    ORDER BY ym ASC
+");
+
+// Buat array 12 bulan terakhir sebagai kerangka (termasuk bulan yang nihil)
+$monthly_donations = [];
+$monthly_labels    = [];
+for ($i = 11; $i >= 0; $i--) {
+    $key   = date('Y-m', strtotime("-$i months"));
+    $label = date('M', strtotime("-$i months"));
+    $monthly_donations[$key] = 0;
+    $monthly_labels[$key]    = $label;
+}
+foreach ($monthly_raw as $r) {
+    if (isset($monthly_donations[$r['ym']])) {
+        $monthly_donations[$r['ym']] = (float)$r['total'];
+    }
+}
+
+// ─── DATA POHON PER CAMPAIGN ──────────────────────────────────────────────────
+
+$campaign_trees_raw = db_query("
+    SELECT 
+        c.title as name,
+        c.target_trees as target,
+        c.current_trees as collected,
+        COALESCE(SUM(p.trees_planted), 0) as planted
+    FROM campaigns c
+    LEFT JOIN plantings p ON p.campaign_id = c.id
+    GROUP BY c.id
+    ORDER BY c.created_at DESC
+");
+
+$campaign_trees = [];
+foreach ($campaign_trees_raw as $row) {
+    $campaign_trees[] = [
+        'name'      => $row['name'],
+        'target'    => (int)$row['target'],
+        'collected' => (int)$row['collected'],
+        'planted'   => (int)$row['planted'],
+    ];
+}
+
+// ─── DOKUMENTASI PENANAMAN (dari tabel plantings + campaigns) ─────────────────
+
+$planting_documentations_raw = db_query("
+    SELECT 
+        p.id,
+        p.planting_date as date,
+        c.title as campaign,
+        p.location,
+        p.trees_planted,
+        p.volunteers,
+        p.image,
+        p.description,
+        p.status
+    FROM plantings p
+    JOIN campaigns c ON c.id = p.campaign_id
+    ORDER BY p.planting_date DESC
+");
+
+$planting_documentations = [];
+foreach ($planting_documentations_raw as $row) {
+    $planting_documentations[] = [
+        'id'          => $row['id'],
+        'date'        => $row['date'],
+        'campaign'    => $row['campaign'],
+        'location'    => $row['location'],
+        'trees_planted' => (int)$row['trees_planted'],
+        'volunteers'  => (int)$row['volunteers'],
+        'image'       => $row['image'],
+        'description' => $row['description'],
+        'status'      => $row['status'],
+    ];
+}
+
+// ─── LAPORAN KEUANGAN ─────────────────────────────────────────────────────────
+
+$finance = db_get_row("
+    SELECT 
+        COALESCE(SUM(CASE WHEN status = 'paid' THEN amount ELSE 0 END), 0) as total_paid,
+        COALESCE(SUM(CASE WHEN status = 'pending' THEN amount ELSE 0 END), 0) as total_pending
+    FROM donations
+");
+$finance_total_paid    = (float)($finance['total_paid'] ?? 0);
+$finance_total_pending = (float)($finance['total_pending'] ?? 0);
 ?>
 <?php include 'includes/header.php'; ?>
 
     <!-- Hero Section -->
     <section class="pt-32 pb-16 bg-gradient-to-b from-primary-50 to-white">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="text-center max-w-3xl mx-auto" data-aos="fade-up">
+            <div class="text-center max-w-3xl mx-auto">
                 <div class="inline-flex items-center bg-primary-100 rounded-full px-4 py-2 mb-6">
                     <i class="fas fa-chart-line text-primary-700 mr-2"></i>
                     <span class="text-sm font-semibold text-primary-800">Transparansi Publik</span>
@@ -101,7 +152,7 @@ $planting_documentations = [
     <section class="py-12">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="grid grid-cols-2 lg:grid-cols-5 gap-4 md:gap-6">
-                <div class="stat-card bg-white rounded-2xl p-6 shadow-card" data-aos="fade-up" data-aos-delay="100">
+                <div class="stat-card bg-white rounded-2xl p-6 shadow-card">
                     <div class="w-12 h-12 bg-primary-100 rounded-xl flex items-center justify-center mb-4">
                         <i class="fas fa-tree text-primary-600 text-xl"></i>
                     </div>
@@ -110,7 +161,7 @@ $planting_documentations = [
                     <p class="text-xs text-gray-400 mt-2">sepanjang masa</p>
                 </div>
                 
-                <div class="stat-card bg-white rounded-2xl p-6 shadow-card" data-aos="fade-up" data-aos-delay="150">
+                <div class="stat-card bg-white rounded-2xl p-6 shadow-card">
                     <div class="w-12 h-12 bg-earth-100 rounded-xl flex items-center justify-center mb-4">
                         <i class="fas fa-seedling text-earth-600 text-xl"></i>
                     </div>
@@ -119,7 +170,7 @@ $planting_documentations = [
                     <p class="text-xs text-gray-400 mt-2">realisasi penanaman</p>
                 </div>
                 
-                <div class="stat-card bg-white rounded-2xl p-6 shadow-card" data-aos="fade-up" data-aos-delay="200">
+                <div class="stat-card bg-white rounded-2xl p-6 shadow-card">
                     <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mb-4">
                         <i class="fas fa-users text-blue-600 text-xl"></i>
                     </div>
@@ -128,7 +179,7 @@ $planting_documentations = [
                     <p class="text-xs text-gray-400 mt-2">orang telah berdonasi</p>
                 </div>
                 
-                <div class="stat-card bg-white rounded-2xl p-6 shadow-card" data-aos="fade-up" data-aos-delay="250">
+                <div class="stat-card bg-white rounded-2xl p-6 shadow-card">
                     <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center mb-4">
                         <i class="fas fa-map-marker-alt text-purple-600 text-xl"></i>
                     </div>
@@ -137,7 +188,7 @@ $planting_documentations = [
                     <p class="text-xs text-gray-400 mt-2">tersebar di Indonesia</p>
                 </div>
                 
-                <div class="stat-card bg-white rounded-2xl p-6 shadow-card" data-aos="fade-up" data-aos-delay="300">
+                <div class="stat-card bg-white rounded-2xl p-6 shadow-card">
                     <div class="w-12 h-12 bg-yellow-100 rounded-xl flex items-center justify-center mb-4">
                         <i class="fas fa-hand-holding-heart text-yellow-600 text-xl"></i>
                     </div>
@@ -153,7 +204,7 @@ $planting_documentations = [
     <section class="py-12">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <!-- Tabs -->
-            <div class="border-b border-gray-200 mb-8" data-aos="fade-up">
+            <div class="border-b border-gray-200 mb-8">
                 <div class="flex space-x-8 overflow-x-auto">
                     <button onclick="showTab('overview')" class="tab-btn active px-1 py-4 text-sm font-medium border-b-2 border-primary-600 text-primary-700 whitespace-nowrap">
                         <i class="fas fa-chart-pie mr-2"></i>Overview
@@ -174,23 +225,23 @@ $planting_documentations = [
             <div id="overview-tab" class="tab-content block">
                 <div class="grid lg:grid-cols-2 gap-8">
                     <!-- Donut Chart - Distribusi Campaign -->
-                    <div class="bg-white rounded-2xl shadow-card p-6" data-aos="fade-right">
+                    <div class="bg-white rounded-2xl shadow-card p-6">
                         <h3 class="text-lg font-bold text-gray-900 mb-4">Distribusi Pohon per Campaign</h3>
                         <div class="h-80 relative">
                             <canvas id="campaignDistributionChart"></canvas>
                         </div>
                         <div class="mt-4 text-sm text-gray-500 text-center">
-                            Total <?php echo number_format($total_trees_collected); ?> pohon dari 6 campaign aktif
+                            Total <?php echo number_format($total_trees_collected); ?> pohon dari <?php echo $total_campaigns; ?> campaign aktif
                         </div>
                     </div>
                     
                     <!-- Progress Overview -->
-                    <div class="bg-white rounded-2xl shadow-card p-6" data-aos="fade-left">
+                    <div class="bg-white rounded-2xl shadow-card p-6">
                         <h3 class="text-lg font-bold text-gray-900 mb-4">Progress Realisasi Penanaman</h3>
                         <div class="space-y-6">
                             <?php foreach (array_slice($campaign_trees, 0, 4) as $campaign): 
-                                $progress = ($campaign['planted'] / $campaign['collected']) * 100;
-                                if ($campaign['collected'] == 0) $progress = 0;
+                                $progress = $campaign['collected'] > 0 ? ($campaign['planted'] / $campaign['collected']) * 100 : 0;
+                                $progress = min($progress, 100);
                             ?>
                             <div>
                                 <div class="flex justify-between items-center mb-2">
@@ -212,7 +263,12 @@ $planting_documentations = [
                         <div class="mt-6 pt-6 border-t border-gray-200">
                             <div class="flex justify-between text-sm">
                                 <span class="text-gray-600">Rata-rata realisasi</span>
-                                <span class="font-bold text-primary-700">57.8%</span>
+                                <?php
+                                    $total_col = array_sum(array_column($campaign_trees, 'collected'));
+                                    $total_plt = array_sum(array_column($campaign_trees, 'planted'));
+                                    $avg_real  = $total_col > 0 ? round(($total_plt / $total_col) * 100, 1) : 0;
+                                ?>
+                                <span class="font-bold text-primary-700"><?php echo $avg_real; ?>%</span>
                             </div>
                         </div>
                     </div>
@@ -220,7 +276,7 @@ $planting_documentations = [
             </div>
 
             <div id="donations-tab" class="tab-content hidden">
-                <div class="bg-white rounded-2xl shadow-card p-6" data-aos="fade-up">
+                <div class="bg-white rounded-2xl shadow-card p-6">
                     <div class="flex flex-col md:flex-row md:items-center justify-between mb-6">
                         <h3 class="text-lg font-bold text-gray-900">Trend Donasi 12 Bulan Terakhir</h3>
                         <div class="flex items-center space-x-2 mt-2 md:mt-0">
@@ -231,33 +287,44 @@ $planting_documentations = [
                     <div class="h-80">
                         <canvas id="donationTrendChart"></canvas>
                     </div>
+                    <?php
+                        $monthly_vals      = array_values($monthly_donations);
+                        $monthly_nonzero   = array_filter($monthly_vals, fn($v) => $v > 0);
+                        $max_monthly       = !empty($monthly_nonzero) ? max($monthly_nonzero) : 0;
+                        $avg_monthly       = !empty($monthly_nonzero) ? array_sum($monthly_nonzero) / count($monthly_nonzero) : 0;
+                        $avg_per_donor     = $total_donors > 0 ? $total_donations / $total_donors : 0;
+                        // Bulan dengan donasi tertinggi
+                        $max_key           = !empty($monthly_nonzero) ? array_search($max_monthly, $monthly_donations) : null;
+                        $max_month_label   = $max_key ? date('F Y', strtotime($max_key . '-01')) : '-';
+                        $total_12m         = array_sum($monthly_nonzero);
+                    ?>
                     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8 pt-6 border-t border-gray-200">
                         <div class="text-center">
-                            <p class="text-sm text-gray-500 mb-1">Donasi Tertinggi</p>
-                            <p class="font-bold text-gray-900">Rp 38.9 Jt</p>
-                            <p class="text-xs text-gray-400">Desember 2025</p>
+                            <p class="text-sm text-gray-500 mb-1">Donasi Tertinggi/Bln</p>
+                            <p class="font-bold text-gray-900">Rp <?php echo number_format($max_monthly / 1000000, 1, ',', '.'); ?> Jt</p>
+                            <p class="text-xs text-gray-400"><?php echo $max_month_label; ?></p>
                         </div>
                         <div class="text-center">
                             <p class="text-sm text-gray-500 mb-1">Rata-rata/Bulan</p>
-                            <p class="font-bold text-gray-900">Rp 24.3 Jt</p>
-                            <p class="text-xs text-gray-400">sepanjang tahun</p>
+                            <p class="font-bold text-gray-900">Rp <?php echo number_format($avg_monthly / 1000000, 1, ',', '.'); ?> Jt</p>
+                            <p class="text-xs text-gray-400">12 bulan terakhir</p>
                         </div>
                         <div class="text-center">
-                            <p class="text-sm text-gray-500 mb-1">Pertumbuhan YoY</p>
-                            <p class="font-bold text-green-600">+45.2%</p>
-                            <p class="text-xs text-gray-400">dibanding 2025</p>
+                            <p class="text-sm text-gray-500 mb-1">Total 12 Bulan</p>
+                            <p class="font-bold text-green-600">Rp <?php echo number_format($total_12m / 1000000, 1, ',', '.'); ?> Jt</p>
+                            <p class="text-xs text-gray-400">donasi terverifikasi</p>
                         </div>
                         <div class="text-center">
-                            <p class="text-sm text-gray-500 mb-1">Rata-rata Donasi</p>
-                            <p class="font-bold text-gray-900">Rp 57.900</p>
-                            <p class="text-xs text-gray-400">per donatur</p>
+                            <p class="text-sm text-gray-500 mb-1">Rata-rata/Donatur</p>
+                            <p class="font-bold text-gray-900">Rp <?php echo number_format($avg_per_donor); ?></p>
+                            <p class="text-xs text-gray-400">per donatur unik</p>
                         </div>
                     </div>
                 </div>
             </div>
 
             <div id="campaigns-tab" class="tab-content hidden">
-                <div class="bg-white rounded-2xl shadow-card p-6" data-aos="fade-up">
+                <div class="bg-white rounded-2xl shadow-card p-6">
                     <h3 class="text-lg font-bold text-gray-900 mb-6">Perbandingan Pohon per Campaign</h3>
                     <div class="h-80">
                         <canvas id="campaignComparisonChart"></canvas>
@@ -300,7 +367,7 @@ $planting_documentations = [
 
             <div id="impact-tab" class="tab-content hidden">
                 <div class="grid lg:grid-cols-2 gap-8">
-                    <div class="bg-white rounded-2xl shadow-card p-6" data-aos="fade-right">
+                    <div class="bg-white rounded-2xl shadow-card p-6">
                         <h3 class="text-lg font-bold text-gray-900 mb-4">Dampak Lingkungan</h3>
                         <div class="space-y-6">
                             <div class="flex items-center justify-between p-4 bg-primary-50 rounded-xl">
@@ -357,7 +424,7 @@ $planting_documentations = [
                         </div>
                     </div>
                     
-                    <div class="bg-white rounded-2xl shadow-card p-6" data-aos="fade-left">
+                    <div class="bg-white rounded-2xl shadow-card p-6">
                         <h3 class="text-lg font-bold text-gray-900 mb-4">SDGs Contribution</h3>
                         <div class="space-y-4">
                             <div class="flex items-center justify-between">
@@ -398,33 +465,65 @@ $planting_documentations = [
     <!-- Dokumentasi Penanaman -->
     <section class="py-12 bg-white">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="text-center max-w-2xl mx-auto mb-12" data-aos="fade-up">
+            <div class="text-center max-w-2xl mx-auto mb-12">
                 <h2 class="text-3xl font-bold text-gray-900 mb-4">Dokumentasi Penanaman</h2>
                 <p class="text-lg text-gray-600">
                     Bukti nyata penanaman pohon dari donasi Anda. Kami selalu update dokumentasi setiap kali melakukan penanaman.
                 </p>
             </div>
             
+            <?php if (empty($planting_documentations)): ?>
+            <div class="col-span-4 text-center py-16 text-gray-400">
+                <i class="fas fa-seedling text-5xl mb-4 block"></i>
+                <p>Belum ada data dokumentasi penanaman.</p>
+            </div>
+            <?php else: ?>
             <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <?php foreach ($planting_documentations as $doc): ?>
-                <div class="documentation-card bg-white rounded-2xl shadow-card overflow-hidden group" data-aos="fade-up">
+                <?php foreach ($planting_documentations as $doc):
+                    // Tentukan URL gambar: bisa upload lokal atau URL eksternal
+                    $imgSrc = '';
+                    if (!empty($doc['image'])) {
+                        // Jika sudah berupa URL lengkap (http/https)
+                        if (strpos($doc['image'], 'http') === 0) {
+                            $imgSrc = $doc['image'];
+                        } else {
+                            $imgSrc = BASE_URL . '/' . ltrim($doc['image'], '/');
+                        }
+                    } else {
+                        $imgSrc = 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=600&q=80';
+                    }
+                    // Label status
+                    $statusMap = ['completed' => ['label' => 'Selesai', 'cls' => 'bg-green-100 text-green-700'],
+                                  'scheduled' => ['label' => 'Terjadwal', 'cls' => 'bg-blue-100 text-blue-700'],
+                                  'cancelled' => ['label' => 'Dibatalkan', 'cls' => 'bg-red-100 text-red-700']];
+                    $statusInfo = $statusMap[$doc['status']] ?? ['label' => $doc['status'], 'cls' => 'bg-gray-100 text-gray-600'];
+                ?>
+                <div class="documentation-card bg-white rounded-2xl shadow-card overflow-hidden group">
                     <div class="relative h-48 overflow-hidden">
-                        <img src="<?php echo $doc['image']; ?>" 
-                             alt="<?php echo $doc['campaign']; ?>"
-                             class="w-full h-full object-cover group-hover:scale-110 transition duration-500">
+                        <img src="<?php echo htmlspecialchars($imgSrc); ?>" 
+                             alt="<?php echo htmlspecialchars($doc['campaign']); ?>"
+                             class="w-full h-full object-cover group-hover:scale-110 transition duration-500"
+                             onerror="this.src='https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=600&q=80'">
                         <div class="absolute top-3 left-3 bg-white/90 backdrop-blur-sm rounded-lg px-3 py-1">
                             <span class="text-xs font-bold text-primary-700"><?php echo date('d M Y', strtotime($doc['date'])); ?></span>
                         </div>
+                        <div class="absolute top-3 right-3">
+                            <span class="text-xs font-semibold px-2 py-1 rounded-full <?php echo $statusInfo['cls']; ?>">
+                                <?php echo $statusInfo['label']; ?>
+                            </span>
+                        </div>
                     </div>
                     <div class="p-4">
-                        <h3 class="font-bold text-gray-900 mb-1 line-clamp-1"><?php echo $doc['campaign']; ?></h3>
+                        <h3 class="font-bold text-gray-900 mb-1 line-clamp-1"><?php echo htmlspecialchars($doc['campaign']); ?></h3>
                         <p class="text-xs text-gray-500 mb-2">
                             <i class="fas fa-map-marker-alt mr-1 text-primary-600"></i>
-                            <?php echo $doc['location']; ?>
+                            <?php echo htmlspecialchars($doc['location']); ?>
                         </p>
+                        <?php if (!empty($doc['description'])): ?>
                         <p class="text-sm text-gray-600 mb-3 line-clamp-2">
-                            <?php echo $doc['description']; ?>
+                            <?php echo htmlspecialchars($doc['description']); ?>
                         </p>
+                        <?php endif; ?>
                         <div class="flex justify-between items-center">
                             <span class="text-xs text-gray-500">
                                 <i class="fas fa-tree mr-1 text-primary-600"></i>
@@ -439,8 +538,9 @@ $planting_documentations = [
                 </div>
                 <?php endforeach; ?>
             </div>
-            
-            <div class="text-center mt-10" data-aos="fade-up">
+            <?php endif; ?>
+                        
+            <div class="text-center mt-10">
                 <button class="inline-flex items-center px-6 py-3 border-2 border-primary-600 text-primary-700 font-semibold rounded-xl hover:bg-primary-50 transition">
                     <i class="fas fa-images mr-2"></i>
                     Lihat Seluruh Dokumentasi
@@ -453,7 +553,7 @@ $planting_documentations = [
     <!-- Laporan Keuangan -->
     <section class="py-12 bg-gray-50/50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="bg-white rounded-2xl shadow-card p-8" data-aos="fade-up">
+            <div class="bg-white rounded-2xl shadow-card p-8">
                 <div class="flex flex-col md:flex-row md:items-center justify-between mb-6">
                     <div>
                         <h2 class="text-2xl font-bold text-gray-900 mb-2">Laporan Keuangan</h2>
@@ -467,43 +567,58 @@ $planting_documentations = [
                     </div>
                 </div>
                 
+                <?php
+                    $finance_pending = $finance_total_pending;
+                    $finance_paid    = $finance_total_paid;
+                    $finance_pct     = $finance_paid > 0 ? round(($finance_paid / ($finance_paid + $finance_pending)) * 100, 1) : 0;
+                ?>
                 <div class="grid md:grid-cols-3 gap-6 mb-8">
                     <div class="bg-gray-50 rounded-xl p-5">
                         <p class="text-sm text-gray-500 mb-1">Total Dana Terkumpul</p>
-                        <p class="text-2xl font-bold text-gray-900">Rp 187.65 Juta</p>
-                        <p class="text-xs text-gray-400 mt-2">Per 28 Feb 2026</p>
+                        <p class="text-2xl font-bold text-gray-900">Rp <?php echo number_format(($finance_paid + $finance_pending) / 1000000, 2, ',', '.'); ?> Juta</p>
+                        <p class="text-xs text-gray-400 mt-2">Per <?php echo date('d M Y'); ?></p>
                     </div>
                     <div class="bg-gray-50 rounded-xl p-5">
-                        <p class="text-sm text-gray-500 mb-1">Dana Tersalurkan</p>
-                        <p class="text-2xl font-bold text-gray-900">Rp 142.32 Juta</p>
-                        <p class="text-xs text-green-600 mt-2">75.8% tersalurkan</p>
+                        <p class="text-sm text-gray-500 mb-1">Dana Terverifikasi (Paid)</p>
+                        <p class="text-2xl font-bold text-gray-900">Rp <?php echo number_format($finance_paid / 1000000, 2, ',', '.'); ?> Juta</p>
+                        <p class="text-xs text-green-600 mt-2"><?php echo $finance_pct; ?>% dari total terkumpul</p>
                     </div>
                     <div class="bg-gray-50 rounded-xl p-5">
-                        <p class="text-sm text-gray-500 mb-1">Sisa Dana Operasional</p>
-                        <p class="text-2xl font-bold text-gray-900">Rp 45.33 Juta</p>
-                        <p class="text-xs text-gray-400 mt-2">untuk penanaman berikutnya</p>
+                        <p class="text-sm text-gray-500 mb-1">Dana Menunggu Verifikasi</p>
+                        <p class="text-2xl font-bold text-gray-900">Rp <?php echo number_format($finance_pending / 1000000, 2, ',', '.'); ?> Juta</p>
+                        <p class="text-xs text-gray-400 mt-2">status pending</p>
                     </div>
                 </div>
                 
                 <div class="border-t border-gray-200 pt-6">
-                    <h4 class="font-semibold text-gray-900 mb-4">Rincian Penggunaan Dana</h4>
-                    <div class="space-y-3">
-                        <div class="flex justify-between items-center">
-                            <span class="text-gray-700">Pembelian bibit pohon</span>
-                            <span class="font-semibold text-gray-900">Rp 78.45 Juta</span>
-                        </div>
-                        <div class="flex justify-between items-center">
-                            <span class="text-gray-700">Biaya penanaman & perawatan</span>
-                            <span class="font-semibold text-gray-900">Rp 42.87 Juta</span>
-                        </div>
-                        <div class="flex justify-between items-center">
-                            <span class="text-gray-700">Transportasi & logistik</span>
-                            <span class="font-semibold text-gray-900">Rp 12.34 Juta</span>
-                        </div>
-                        <div class="flex justify-between items-center">
-                            <span class="text-gray-700">Biaya operasional</span>
-                            <span class="font-semibold text-gray-900">Rp 8.66 Juta</span>
-                        </div>
+                    <h4 class="font-semibold text-gray-900 mb-2">Ringkasan Donasi per Campaign</h4>
+                    <div class="overflow-x-auto">
+                    <table class="min-w-full text-sm">
+                        <thead><tr class="text-left text-xs text-gray-500 uppercase border-b">
+                            <th class="pb-2 pr-4">Campaign</th>
+                            <th class="pb-2 pr-4 text-right">Donasi Paid</th>
+                            <th class="pb-2 text-right">Jumlah Donatur</th>
+                        </tr></thead>
+                        <tbody>
+                        <?php
+                        $fin_rows = db_query("
+                            SELECT c.title, 
+                                   COALESCE(SUM(CASE WHEN d.status='paid' THEN d.amount ELSE 0 END),0) as total_paid,
+                                   COUNT(CASE WHEN d.status='paid' THEN 1 END) as donors
+                            FROM campaigns c
+                            LEFT JOIN donations d ON d.campaign_id = c.id
+                            GROUP BY c.id
+                            ORDER BY total_paid DESC
+                        ");
+                        foreach ($fin_rows as $fr): ?>
+                        <tr class="border-b border-gray-100">
+                            <td class="py-2 pr-4 font-medium text-gray-800"><?php echo htmlspecialchars($fr['title']); ?></td>
+                            <td class="py-2 pr-4 text-right text-gray-700">Rp <?php echo number_format($fr['total_paid']); ?></td>
+                            <td class="py-2 text-right text-gray-500"><?php echo $fr['donors']; ?> orang</td>
+                        </tr>
+                        <?php endforeach; ?>
+                        </tbody>
+                    </table>
                     </div>
                 </div>
             </div>
@@ -533,12 +648,25 @@ $planting_documentations = [
         </div>
     </footer>
 
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <!-- AOS -->
     <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <!-- Fallback: jika AOS belum trigger, konten tetap terlihat -->
+    <style>
+        [data-aos] { opacity: 1 !important; transform: none !important; transition: none !important; }
+    </style>
     <script>
-        AOS.init({
-            duration: 800,
-            once: true
-        });
+        if (typeof AOS !== 'undefined') {
+            // Reset fallback jika AOS berhasil load
+            document.querySelectorAll('style').forEach(s => {
+                if (s.textContent.includes('[data-aos]')) s.remove();
+            });
+            AOS.init({
+                duration: 800,
+                once: true
+            });
+        }
 
         // Tab functionality
         function showTab(tabName) {
@@ -561,126 +689,122 @@ $planting_documentations = [
 
         // Initialize charts when page loads
         window.addEventListener('load', function() {
-            // Campaign Distribution Chart (Donut)
-            const ctx1 = document.getElementById('campaignDistributionChart').getContext('2d');
-            new Chart(ctx1, {
-                type: 'doughnut',
-                data: {
-                    labels: ['Mangrove Demak', 'Lereng Merapi', 'Hutan Lombok', 'Hutan Pangan', 'Mangrove Jakarta', 'Hutan Papua'],
-                    datasets: [{
-                        data: [1450, 2300, 780, 450, 1250, 320],
-                        backgroundColor: [
-                            '#10b981',
-                            '#34d399',
-                            '#6ee7b7',
-                            '#a7f3d0',
-                            '#d1fae5',
-                            '#ecfdf5'
-                        ],
-                        borderWidth: 0
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: {
-                                boxWidth: 12,
-                                padding: 15
-                            }
-                        }
-                    }
-                }
-            });
+        // ─── Data dari PHP untuk semua chart ───────────────────────────────────
+        const campaignNames     = <?php echo json_encode(array_column($campaign_trees, 'name')); ?>;
+        const campaignCollected = <?php echo json_encode(array_column($campaign_trees, 'collected')); ?>;
+        const campaignPlanted   = <?php echo json_encode(array_column($campaign_trees, 'planted')); ?>;
+        const monthLabels       = <?php echo json_encode(array_values($monthly_labels)); ?>;
+        const monthlyData       = <?php echo json_encode(array_values($monthly_donations)); ?>;
 
-            // Donation Trend Chart
-            const ctx2 = document.getElementById('donationTrendChart').getContext('2d');
-            new Chart(ctx2, {
-                type: 'line',
-                data: {
-                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-                    datasets: [{
-                        label: 'Donasi 2025',
-                        data: [12500000, 15200000, 18400000, 22300000, 19800000, 25600000, 27800000, 31200000, 29500000, 32400000, 35600000, 38900000],
-                        borderColor: '#10b981',
-                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                        borderWidth: 3,
-                        pointBackgroundColor: '#059669',
-                        pointBorderColor: '#fff',
-                        pointBorderWidth: 2,
-                        pointRadius: 4,
-                        pointHoverRadius: 6,
-                        tension: 0.4,
-                        fill: true
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    return 'Rp ' + context.parsed.y.toLocaleString('id-ID');
-                                }
-                            }
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: {
-                                callback: function(value) {
-                                    return 'Rp ' + (value / 1000000) + 'jt';
-                                }
-                            }
-                        }
-                    }
-                }
-            });
+        // Warna gradasi hijau untuk chart
+        const greenPalette = ['#059669','#10b981','#34d399','#6ee7b7','#a7f3d0','#d1fae5','#ecfdf5','#f0fdf4','#bbf7d0','#86efac','#4ade80','#22c55e'];
 
-            // Campaign Comparison Chart
-            const ctx3 = document.getElementById('campaignComparisonChart').getContext('2d');
-            new Chart(ctx3, {
-                type: 'bar',
-                data: {
-                    labels: ['Mangrove Demak', 'Lereng Merapi', 'Hutan Lombok', 'Hutan Pangan', 'Mangrove Jakarta', 'Hutan Papua'],
-                    datasets: [
-                        {
-                            label: 'Terkumpul',
-                            data: [1450, 2300, 780, 450, 1250, 320],
-                            backgroundColor: '#10b981',
-                            borderRadius: 8
-                        },
-                        {
-                            label: 'Tertanam',
-                            data: [890, 1650, 450, 120, 840, 100],
-                            backgroundColor: '#f59e0b',
-                            borderRadius: 8
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'top',
-                        }
+        // ─── Campaign Distribution Chart (Donut) ───────────────────────────────
+        const ctx1 = document.getElementById('campaignDistributionChart').getContext('2d');
+        new Chart(ctx1, {
+            type: 'doughnut',
+            data: {
+                labels: campaignNames,
+                datasets: [{
+                    data: campaignCollected,
+                    backgroundColor: greenPalette.slice(0, campaignNames.length),
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { boxWidth: 12, padding: 15 }
                     },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            title: {
-                                display: true,
-                                text: 'Jumlah Pohon'
-                            }
+                    tooltip: {
+                        callbacks: {
+                            label: ctx => ` ${ctx.label}: ${ctx.parsed.toLocaleString('id-ID')} pohon`
                         }
                     }
                 }
-            });
+            }
+        });
+
+        // ─── Donation Trend Chart (Line) ───────────────────────────────────────
+        const ctx2 = document.getElementById('donationTrendChart').getContext('2d');
+        new Chart(ctx2, {
+            type: 'line',
+            data: {
+                labels: monthLabels,
+                datasets: [{
+                    label: 'Donasi (Rupiah)',
+                    data: monthlyData,
+                    borderColor: '#10b981',
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    borderWidth: 3,
+                    pointBackgroundColor: '#059669',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: ctx => 'Rp ' + ctx.parsed.y.toLocaleString('id-ID')
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: value => 'Rp ' + (value / 1000000).toFixed(1) + 'jt'
+                        }
+                    }
+                }
+            }
+        });
+
+        // ─── Campaign Comparison Chart (Bar) ───────────────────────────────────
+        const ctx3 = document.getElementById('campaignComparisonChart').getContext('2d');
+        new Chart(ctx3, {
+            type: 'bar',
+            data: {
+                labels: campaignNames,
+                datasets: [
+                    {
+                        label: 'Terkumpul (pohon)',
+                        data: campaignCollected,
+                        backgroundColor: '#10b981',
+                        borderRadius: 8
+                    },
+                    {
+                        label: 'Tertanam (pohon)',
+                        data: campaignPlanted,
+                        backgroundColor: '#f59e0b',
+                        borderRadius: 8
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'top' }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: { display: true, text: 'Jumlah Pohon' }
+                    }
+                }
+            }
+        });
         });
 
         // Smooth scroll
