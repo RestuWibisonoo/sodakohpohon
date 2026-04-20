@@ -211,27 +211,7 @@ $categories = getCampaignCategories();
     </section>
 
     <!-- Footer -->
-    <footer class="bg-gray-900 text-white py-12">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="text-center">
-                <div class="flex items-center justify-center space-x-3 mb-4">
-                    <div class="bg-gradient-to-br from-primary-600 to-primary-700 rounded-xl p-2.5">
-                        <i class="fas fa-tree text-white text-xl"></i>
-                    </div>
-                    <span class="text-xl font-extrabold">
-                        <span class="text-primary-500">Sodakoh</span>
-                        <span class="text-white">Pohon</span>
-                    </span>
-                </div>
-                <p class="text-gray-400 text-sm">
-                    Sedekah dalam bentuk pohon untuk masa depan bumi yang lebih hijau.
-                </p>
-                <div class="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400 text-sm">
-                    <p>&copy; <?php echo date('Y'); ?> Sodakoh Pohon. All rights reserved.</p>
-                </div>
-            </div>
-        </div>
-    </footer>
+    <?php include 'includes/footer.php'; ?>
 
     <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
     <script>
