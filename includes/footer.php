@@ -115,49 +115,6 @@
                 nav.classList.add('glass-effect');
             }
         });
-
-        // Programs Dropdown Click Handler
-        const programsBtn = document.getElementById('programsBtn');
-        const programsMenu = document.getElementById('programsMenu');
-        const programsIcon = document.getElementById('programsIcon');
-        const programsDropdown = document.getElementById('programsDropdown');
-        let isDropdownOpen = false;
-
-        programsBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            isDropdownOpen = !isDropdownOpen;
-            
-            if (isDropdownOpen) {
-                programsMenu.classList.remove('opacity-0', 'invisible');
-                programsMenu.classList.add('opacity-100', 'visible');
-                programsIcon.classList.add('rotate-180');
-            } else {
-                programsMenu.classList.add('opacity-0', 'invisible');
-                programsMenu.classList.remove('opacity-100', 'visible');
-                programsIcon.classList.remove('rotate-180');
-            }
-        });
-
-        // Close dropdown when clicking on menu items
-        const programsLinks = programsMenu.querySelectorAll('a');
-        programsLinks.forEach(link => {
-            link.addEventListener('click', function() {
-                isDropdownOpen = false;
-                programsMenu.classList.add('opacity-0', 'invisible');
-                programsMenu.classList.remove('opacity-100', 'visible');
-                programsIcon.classList.remove('rotate-180');
-            });
-        });
-
-        // Close dropdown when clicking outside
-        document.addEventListener('click', function(e) {
-            if (!programsDropdown.contains(e.target)) {
-                isDropdownOpen = false;
-                programsMenu.classList.add('opacity-0', 'invisible');
-                programsMenu.classList.remove('opacity-100', 'visible');
-                programsIcon.classList.remove('rotate-180');
-            }
-        });
     </script>
 </body>
 </html>

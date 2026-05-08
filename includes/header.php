@@ -7,6 +7,13 @@ if (session_status() === PHP_SESSION_NONE) {
 // ✅ INCLUDE KONEKSI DATABASE (Singleton Pattern)
 require_once dirname(__DIR__) . '/config/koneksi.php';
 
+// ✅ AUTO-DETECT BASE URL (untuk project di subdirektori seperti /sodakohpohon/)
+$base_url = rtrim(dirname($_SERVER['SCRIPT_NAME']), '/\\');
+// Jika header di-include dari root (index.php), dirname = /sodakohpohon
+// Jika header di-include dari subfolder (users/profile.php), dirname = /sodakohpohon/users
+// Kita butuh base folder project saja:
+$base_url = '/sodakohpohon';
+
 // Deteksi halaman saat ini
 $current_page = basename($_SERVER['PHP_SELF']);
 $is_home = ($current_page === 'index.php' || $current_page === 'header.php');
@@ -55,10 +62,10 @@ if (isset($_SESSION['cart']['items']) && is_array($_SESSION['cart']['items'])) {
     }
 }
 
-// Logika Link Navigasi dengan Absolute Path
-$program_href = $is_home ? '#programs' : '/index.php#programs';
-$how_it_works_href = $is_home ? '#how-it-works' : '/index.php#how-it-works';
-$donate_href = $is_home ? '#campaigns' : '/index.php#campaigns';
+// Logika Link Navigasi dengan Base URL
+$program_href = $is_home ? '#programs' : $base_url . '/index.php#programs';
+$how_it_works_href = $is_home ? '#how-it-works' : $base_url . '/index.php#how-it-works';
+$donate_href = $is_home ? '#campaigns' : $base_url . '/index.php#campaigns';
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -220,7 +227,7 @@ $donate_href = $is_home ? '#campaigns' : '/index.php#campaigns';
             <div class="hidden md:flex justify-between items-center h-20">
 
                 <!-- Logo -->
-                <a href="/index.php" class="flex items-center space-x-2 flex-shrink-0">
+                <a href="<?php echo $base_url; ?>/index.php" class="flex items-center space-x-2 flex-shrink-0">
                     <div class="relative">
                         <div class="absolute inset-0 bg-primary-600 rounded-lg blur-sm opacity-60"></div>
                         <div class="relative bg-gradient-to-br from-primary-600 to-primary-700 rounded-lg p-1.5">
@@ -238,11 +245,11 @@ $donate_href = $is_home ? '#campaigns' : '/index.php#campaigns';
 
                 <!-- Desktop Menu -->
                 <div class="flex items-center justify-center gap-1 flex-1">
-                    <a href="/index.php"
+                    <a href="<?php echo $base_url; ?>/index.php"
                         class="<?php echo $is_home ? 'text-primary-700 font-semibold border-b-2 border-primary-600' : 'text-gray-600 hover:text-primary-600 font-medium transition'; ?> py-2 px-3 text-sm">
                         Beranda
                     </a>
-                    <a href="/campaign.php"
+                    <a href="<?php echo $base_url; ?>/campaign.php"
                         class="<?php echo $is_campaign ? 'text-primary-700 font-semibold border-b-2 border-primary-600' : 'text-gray-600 hover:text-primary-600 font-medium transition'; ?> py-2 px-3 text-sm">
                         Campaign
                     </a>
@@ -286,13 +293,13 @@ $donate_href = $is_home ? '#campaigns' : '/index.php#campaigns';
                         Cara Kerja
                     </a>
 
-                    <a href="/laporan.php"
+                    <a href="<?php echo $base_url; ?>/laporan.php"
                         class="<?php echo $is_laporan ? 'text-primary-700 font-semibold border-b-2 border-primary-600' : 'text-gray-600 hover:text-primary-600 font-medium transition'; ?> py-2 px-3 text-sm">
                         Laporan
                     </a>
 
                     <!-- Link Tentang -->
-                    <a href="/tentang.php"
+                    <a href="<?php echo $base_url; ?>/tentang.php"
                         class="<?php echo $is_tentang ? 'text-primary-700 font-semibold border-b-2 border-primary-600' : 'text-gray-600 hover:text-primary-600 font-medium transition'; ?> py-2 px-3 text-sm">
                         Tentang
                     </a>
@@ -300,7 +307,7 @@ $donate_href = $is_home ? '#campaigns' : '/index.php#campaigns';
 
                 <!-- Action Buttons (Desktop) -->
                 <div class="flex items-center gap-3 flex-shrink-0">
-                    <a href="/cart.php" class="relative p-2 text-gray-600 hover:text-primary-600 transition">
+                    <a href="<?php echo $base_url; ?>/cart.php" class="relative p-2 text-gray-600 hover:text-primary-600 transition">
                         <i class="fas fa-shopping-cart text-xl"></i>
                         <span id="cartBadge"
                             class="absolute -top-1 -right-1 bg-primary-600 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center"><?php echo $_cart_count; ?></span>
@@ -338,21 +345,21 @@ $donate_href = $is_home ? '#campaigns' : '/index.php#campaigns';
                                     </p>
                                 </div>
 
-                                <a href="/users/riwayat.php"
+                                <a href="<?php echo $base_url; ?>/users/riwayat.php"
                                     class="block px-4 py-2 text-gray-700 hover:bg-primary-50 hover:text-primary-600 transition duration-150 text-sm">
                                     <i class="fas fa-history mr-2 w-4"></i>Histori Donasi
                                 </a>
-                                <a href="/users/sertifikat.php"
+                                <a href="<?php echo $base_url; ?>/users/sertifikat.php"
                                     class="block px-4 py-2 text-gray-700 hover:bg-primary-50 hover:text-primary-600 transition duration-150 text-sm">
                                     <i class="fas fa-certificate mr-2 w-4"></i>Sertifikat
                                 </a>
-                                <a href="/users/profile.php"
+                                <a href="<?php echo $base_url; ?>/users/profile.php"
                                     class="block px-4 py-2 text-gray-700 hover:bg-primary-50 hover:text-primary-600 transition duration-150 text-sm">
                                     <i class="fas fa-user-circle mr-2 w-4"></i>Profile
                                 </a>
 
                                 <div class="border-t border-gray-100 my-1"></div>
-                                <a href="/auth.php?action=logout"
+                                <a href="<?php echo $base_url; ?>/auth.php?action=logout"
                                     class="block px-4 py-2 text-red-600 hover:bg-red-50 transition duration-150 text-sm font-semibold">
                                     <i class="fas fa-sign-out-alt mr-2 w-4"></i>Logout
                                 </a>
@@ -360,7 +367,7 @@ $donate_href = $is_home ? '#campaigns' : '/index.php#campaigns';
                         </div>
 
                     <?php else: ?>
-                        <a href="/login.php"
+                        <a href="<?php echo $base_url; ?>/login.php"
                             class="inline-flex items-center px-4 py-2 border-2 border-primary-600 text-primary-700 font-semibold rounded-lg hover:bg-primary-50 transition text-sm">
                             <i class="fas fa-sign-in-alt mr-2"></i>Login
                         </a>
@@ -378,7 +385,7 @@ $donate_href = $is_home ? '#campaigns' : '/index.php#campaigns';
             <div class="md:hidden flex justify-between items-center h-20">
 
                 <!-- Logo -->
-                <a href="/index.php" class="flex items-center space-x-2 flex-shrink-0">
+                <a href="<?php echo $base_url; ?>/index.php" class="flex items-center space-x-2 flex-shrink-0">
                     <div class="relative">
                         <div class="absolute inset-0 bg-primary-600 rounded-lg blur-sm opacity-60"></div>
                         <div class="relative bg-gradient-to-br from-primary-600 to-primary-700 rounded-lg p-1.5">
@@ -433,21 +440,21 @@ $donate_href = $is_home ? '#campaigns' : '/index.php#campaigns';
                                     </p>
                                 </div>
 
-                                <a href="/users/riwayat.php"
+                                <a href="<?php echo $base_url; ?>/users/riwayat.php"
                                     class="block px-4 py-2 text-gray-700 hover:bg-primary-50 hover:text-primary-600 transition duration-150 text-sm">
                                     <i class="fas fa-history mr-2 w-4"></i>Histori Donasi
                                 </a>
-                                <a href="/users/sertifikat.php"
+                                <a href="<?php echo $base_url; ?>/users/sertifikat.php"
                                     class="block px-4 py-2 text-gray-700 hover:bg-primary-50 hover:text-primary-600 transition duration-150 text-sm">
                                     <i class="fas fa-certificate mr-2 w-4"></i>Sertifikat
                                 </a>
-                                <a href="/users/profile.php"
+                                <a href="<?php echo $base_url; ?>/users/profile.php"
                                     class="block px-4 py-2 text-gray-700 hover:bg-primary-50 hover:text-primary-600 transition duration-150 text-sm">
                                     <i class="fas fa-user-circle mr-2 w-4"></i>Profile
                                 </a>
 
                                 <div class="border-t border-gray-100 my-1"></div>
-                                <a href="/auth.php?action=logout"
+                                <a href="<?php echo $base_url; ?>/auth.php?action=logout"
                                     class="block px-4 py-2 text-red-600 hover:bg-red-50 transition duration-150 text-sm font-semibold">
                                     <i class="fas fa-sign-out-alt mr-2 w-4"></i>Logout
                                 </a>
@@ -455,7 +462,7 @@ $donate_href = $is_home ? '#campaigns' : '/index.php#campaigns';
                         </div>
 
                     <?php else: ?>
-                        <a href="/login.php"
+                        <a href="<?php echo $base_url; ?>/login.php"
                             class="inline-flex items-center px-3 py-2 border-2 border-primary-600 text-primary-700 font-semibold rounded-lg hover:bg-primary-50 transition text-sm">
                             <i class="fas fa-sign-in-alt mr-1"></i>Login
                         </a>
@@ -467,11 +474,11 @@ $donate_href = $is_home ? '#campaigns' : '/index.php#campaigns';
             <div id="mobileMenu"
                 class="hidden md:hidden overflow-y-auto bg-white border-t border-gray-100 max-h-0 transition-all duration-300 ease-in-out">
                 <div class="px-3 py-2 space-y-1">
-                    <a href="/index.php"
+                    <a href="<?php echo $base_url; ?>/index.php"
                         class="<?php echo $is_home ? 'bg-primary-50 text-primary-700 font-semibold' : 'text-gray-700 hover:text-primary-600'; ?> block px-3 py-2 rounded-lg transition text-sm">
                         <i class="fas fa-home mr-2 w-4"></i><span class="align-middle">Beranda</span>
                     </a>
-                    <a href="/campaign.php"
+                    <a href="<?php echo $base_url; ?>/campaign.php"
                         class="<?php echo $is_campaign ? 'bg-primary-50 text-primary-700 font-semibold' : 'text-gray-700 hover:text-primary-600'; ?> block px-3 py-2 rounded-lg transition text-sm">
                         <i class="fas fa-handshake mr-2 w-4"></i><span class="align-middle">Campaign</span>
                     </a>
@@ -506,17 +513,17 @@ $donate_href = $is_home ? '#campaigns' : '/index.php#campaigns';
                         <i class="fas fa-cogs mr-2 w-4"></i><span class="align-middle">Cara Kerja</span>
                     </a>
 
-                    <a href="/laporan.php"
+                    <a href="<?php echo $base_url; ?>/laporan.php"
                         class="<?php echo $is_laporan ? 'bg-primary-50 text-primary-700 font-semibold' : 'text-gray-700 hover:text-primary-600'; ?> block px-3 py-2 rounded-lg transition text-sm">
                         <i class="fas fa-chart-bar mr-2 w-4"></i><span class="align-middle">Laporan</span>
                     </a>
 
-                    <a href="/tentang.php"
+                    <a href="<?php echo $base_url; ?>/tentang.php"
                         class="<?php echo $is_tentang ? 'bg-primary-50 text-primary-700 font-semibold' : 'text-gray-700 hover:text-primary-600'; ?> block px-3 py-2 rounded-lg transition text-sm">
                         <i class="fas fa-info-circle mr-2 w-4"></i><span class="align-middle">Tentang</span>
                     </a>
 
-                    <a href="/cart.php"
+                    <a href="<?php echo $base_url; ?>/cart.php"
                         class="text-gray-700 hover:text-primary-600 block px-3 py-2 rounded-lg transition text-sm">
                         <i class="fas fa-shopping-cart mr-2 w-4"></i><span class="align-middle">Keranjang</span>
                         <span class="ml-2 bg-primary-600 text-white text-xs font-bold rounded-full px-2 py-0.5"><?php echo $_cart_count; ?></span>
@@ -587,7 +594,7 @@ $donate_href = $is_home ? '#campaigns' : '/index.php#campaigns';
                     // Close programs submenu when closing main menu
                     if (mobileProgramsMenu) {
                         mobileProgramsMenu.classList.add('max-h-0');
-                        mobileProgramsMenu.classList.remove('max-h-32');
+                        mobileProgramsMenu.classList.remove('max-h-48');
                         if (mobileProgramsIcon) {
                             mobileProgramsIcon.style.transform = 'rotate(0deg)';
                         }
@@ -601,13 +608,13 @@ $donate_href = $is_home ? '#campaigns' : '/index.php#campaigns';
                 const isHidden = mobileProgramsMenu.classList.contains('max-h-0');
                 if (isHidden) {
                     mobileProgramsMenu.classList.remove('max-h-0');
-                    mobileProgramsMenu.classList.add('max-h-32');
+                    mobileProgramsMenu.classList.add('max-h-48');
                     if (mobileProgramsIcon) {
                         mobileProgramsIcon.style.transform = 'rotate(180deg)';
                     }
                 } else {
                     mobileProgramsMenu.classList.add('max-h-0');
-                    mobileProgramsMenu.classList.remove('max-h-32');
+                    mobileProgramsMenu.classList.remove('max-h-48');
                     if (mobileProgramsIcon) {
                         mobileProgramsIcon.style.transform = 'rotate(0deg)';
                     }
@@ -621,11 +628,8 @@ $donate_href = $is_home ? '#campaigns' : '/index.php#campaigns';
             link.addEventListener('click', () => {
                 if (mobileMenu && mobileMenuBtn) {
                     mobileMenu.classList.add('hidden', 'max-h-0');
-                    mobileMenu.classList.remove('max-h-96');
+                    mobileMenu.classList.remove('max-h-screen');
                 }
             });
         });
     </script>
-</body>
-
-</html>
